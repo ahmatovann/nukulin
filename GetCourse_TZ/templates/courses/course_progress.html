@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Прогресс: {{ course.title }}{% endblock %}
+{% block content %}
+<nav class="gc-crumbs" aria-label="Навигация">
+  <a href="{% url 'courses:my_courses' %}">Мои курсы</a>
+  <span aria-hidden="true">/</span>
+  <a href="{% url 'courses:course_detail' course.pk %}">{{ course.title }}</a>
+</nav>
+
+<section class="gc-section-head" data-reveal>
+  <div>
+    <span class="gc-eyebrow">Мой прогресс</span>
+    <h1>{{ course.title }}</h1>
+  </div>
+</section>
+
+<div class="gc-card gc-stats" data-reveal>
+  <div class="gc-stat"><strong>{{ summary.percent }}%</strong><span>Пройдено курса</span></div>
+  <div class="gc-stat"><strong>{{ summary.done }} / {{ summary.total }}</strong><span>Уроков пройдено</span></div>
+  <div class="gc-stat"><strong>{% if summary.completed %}Да{% else %}Нет{% endif %}</strong><span>Курс завершён</span></div>
+</div>
+
+{% if summary.completed %}
+  <div class="gc-card gc-alert gc-alert--success" data-reveal style="padding:20px 22px">
+    <strong style="font-size:18px">Поздравляем, курс пройден!</strong>
+    <p style="margin-top:4px">Вы сдали тесты всех уроков этого курса.</p>
+  </div>
+{% endif %}
+
+<section class="gc-block">
+  <h2 class="gc-block-title" data-reveal>Результаты по урокам</h2>
+  <div class="gc-card" data-reveal style="padding:0;overflow-x:auto">
+    <table class="gc-table">
+      <thead>
+        <tr>
+          <th>Урок</th>
+          <th>Состояние</th>
+          <th class="num">Лучший результат</th>
+          <th class="num">Попыток</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>
+              {% if row.is_open %}
+                <a href="{% url 'courses:lesson_detail' row.lesson.pk %}">{{ row.number }}. {{ row.lesson.title }}</a>
+              {% else %}
+                {{ row.number }}. {{ row.lesson.title }}
+              {% endif %}
+            </td>
+            <td>
+              {% if row.is_done %}<span class="gc-badge gc-badge--success">Пройден</span>
+              {% elif row.state == 'current' %}<span class="gc-badge">Доступен</span>
+              {% else %}<span class="gc-badge gc-badge--muted">Закрыт</span>{% endif %}
+            </td>
+            <td class="num">{% if row.best %}{{ row.best.score }}%{% elif row.test %}—{% else %}без теста{% endif %}</td>
+            <td class="num">{{ row.attempts }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

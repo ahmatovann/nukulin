@@ -1,4 +1,7 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
+from django.conf import settings
 from django.db import models
+from django.utils import timezone
 
 
 class Category(models.Model):
@@ -112,3 +115,160 @@ class LessonFile(models.Model):
 
     def __str__(self):
         return self.name
+
+class Test(models.Model):
+    lesson = models.OneToOneField(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name='test',
+        verbose_name='Урок',
+    )
+    pass_score = models.PositiveSmallIntegerField(
+        'Проходной балл, %',
+        default=70,
+        validators=[MinValueValidator(1), MaxValueValidator(100)],
+        help_text='От 1 до 100. По умолчанию 70%.',
+    )
+
+    class Meta:
+        verbose_name = 'Тест'
+        verbose_name_plural = 'Тесты'
+        ordering = ['lesson__course', 'lesson__order']
+
+    def __str__(self):
+        return f'Тест к уроку «{self.lesson.title}» ({self.lesson.course.title})'
+
+
+class Question(models.Model):
+    TYPE_CHOICES = [
+        ('single', 'Один правильный ответ'),
+        ('multiple', 'Несколько правильных ответов'),
+    ]
+
+    test = models.ForeignKey(
+        Test,
+        on_delete=models.CASCADE,
+        related_name='questions',
+        verbose_name='Тест',
+    )
+    order = models.PositiveIntegerField('Порядок', default=0)
+    text = models.TextField('Текст вопроса')
+    qtype = models.CharField(
+        'Тип ответа',
+        max_length=10,
+        choices=TYPE_CHOICES,
+        default='single',
+    )
+
+    class Meta:
+        verbose_name = 'Вопрос'
+        verbose_name_plural = 'Вопросы'
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return self.text[:80]
+
+
+class Answer(models.Model):
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name='answers',
+        verbose_name='Вопрос',
+    )
+    order = models.PositiveIntegerField('Порядок', default=0)
+    text = models.CharField('Вариант ответа', max_length=300)
+    is_correct = models.BooleanField('Правильный', default=False)
+
+    class Meta:
+        verbose_name = 'Вариант ответа'
+        verbose_name_plural = 'Варианты ответов'
+        ordering = ['order', 'id']
+
+    def __str__(self):
+        return self.text
+
+
+
+class Enrollment(models.Model):
+    """Запись пользователя на курс (UC-8). Повторная запись запрещена."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='enrollments',
+        verbose_name='Пользователь',
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name='enrollments',
+        verbose_name='Курс',
+    )
+    enrolled_at = models.DateTimeField('Дата записи', default=timezone.now)
+    completed_at = models.DateTimeField('Курс завершён', null=True, blank=True)
+
+    class Meta:
+        verbose_name = 'Запись на курс'
+        verbose_name_plural = 'Записи на курсы'
+        ordering = ['-enrolled_at']
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'course'], name='unique_enrollment'),
+        ]
+
+    def __str__(self):
+        return f'{self.user} → {self.course}'
+
+
+class TestAttempt(models.Model):
+    """Попытка сдачи теста (UC-11, UC-12). Засчитывается лучший результат."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='test_attempts',
+        verbose_name='Пользователь',
+    )
+    test = models.ForeignKey(
+        Test,
+        on_delete=models.CASCADE,
+        related_name='attempts',
+        verbose_name='Тест',
+    )
+    score = models.PositiveSmallIntegerField(
+        'Результат, %',
+        validators=[MaxValueValidator(100)],
+    )
+    passed = models.BooleanField('Сдан', default=False)
+    created_at = models.DateTimeField('Дата попытки', default=timezone.now)
+
+    class Meta:
+        verbose_name = 'Попытка теста'
+        verbose_name_plural = 'Попытки тестов'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user} — {self.test.lesson.title}: {self.score}%'
+
+
+class AttemptAnswer(models.Model):
+    """Ответ пользователя на один вопрос в попытке — нужен для «сложных вопросов»."""
+
+    attempt = models.ForeignKey(
+        TestAttempt,
+        on_delete=models.CASCADE,
+        related_name='answers',
+        verbose_name='Попытка',
+    )
+    question = models.ForeignKey(
+        Question,
+        on_delete=models.CASCADE,
+        related_name='attempt_answers',
+        verbose_name='Вопрос',
+    )
+    selected = models.ManyToManyField(Answer, blank=True, verbose_name='Выбранные ответы')
+    is_correct = models.BooleanField('Ответ верный', default=False)
+
+    class Meta:
+        verbose_name = 'Ответ в попытке'
+        verbose_name_plural = 'Ответы в попытках'

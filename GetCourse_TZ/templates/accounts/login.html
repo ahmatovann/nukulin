@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Вход{% endblock %}
+{% block content %}
+<section class="gc-card gc-auth" data-shine>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <span class="gc-eyebrow">GetCourse</span>
+    <h1 style="font-size:32px">Вход</h1>
+    <p class="muted">Войдите по e-mail и паролю, чтобы продолжить обучение.</p>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="gc-alert gc-alert--error" role="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ next }}">
+    {% include 'accounts/_field.html' with field=form.username %}
+    {% include 'accounts/_field.html' with field=form.password %}
+    <a href="{% url 'accounts:password_reset' %}" style="align-self:flex-end;font-weight:600;margin-top:-6px">Забыли пароль?</a>
+    <button class="gc-btn gc-btn--block" type="submit">Войти</button>
+  </form>
+
+  <p class="gc-auth-switch muted">Нет аккаунта? <a href="{% url 'accounts:register' %}" style="font-weight:600">Зарегистрироваться</a></p>
+</section>
+{% endblock %}

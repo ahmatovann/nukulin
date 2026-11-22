@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% block title %}Редактирование профиля{% endblock %}
+{% block content %}
+<div class="gc-profile-page">
+{% include 'accounts/_profile_card.html' with editing=True %}
+
+<div class="gc-two">
+  <section class="gc-card" data-reveal data-shine style="--i:0;display:flex;flex-direction:column;gap:18px">
+    <h2 style="font-size:24px">Личные данные</h2>
+
+    {% if profile_form.non_field_errors %}<div class="gc-alert gc-alert--error" role="alert">{{ profile_form.non_field_errors|join:" " }}</div>{% endif %}
+
+    <form method="post" enctype="multipart/form-data" novalidate style="display:flex;flex-direction:column;gap:16px">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="profile">
+      <div class="gc-form-2">
+        {% include 'accounts/_field.html' with field=profile_form.first_name %}
+        {% include 'accounts/_field.html' with field=profile_form.last_name %}
+      </div>
+      <div class="gc-field">
+        <label for="email-ro">Электронная почта</label>
+        <input class="gc-input" id="email-ro" type="email" value="{{ user.email }}" readonly aria-describedby="email-help">
+        <div class="gc-help" id="email-help">E-mail используется для входа и не меняется.</div>
+      </div>
+      <div class="gc-field{% if profile_form.avatar.errors %} has-error{% endif %}">
+        <span style="font-weight:600">Фото профиля</span>
+        <label class="gc-drop" for="{{ profile_form.avatar.id_for_label }}">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="M7 9l5-5 5 5"/><path d="M5 20h14"/></svg>
+          <span><strong>Выберите файл</strong> <span class="muted" id="file-name">JPG или PNG, до 2 МБ</span></span>
+        </label>
+        {{ profile_form.avatar }}
+        {% if profile_form.avatar.errors %}<ul class="gc-errors">{% for e in profile_form.avatar.errors %}<li>{{ e }}</li>{% endfor %}</ul>{% endif %}
+        {% if user.avatar %}
+          <label style="display:flex;align-items:center;gap:8px;font-weight:500"><input type="checkbox" name="remove_avatar" value="1"> Удалить текущее фото</label>
+        {% endif %}
+      </div>
+      <button class="gc-btn" type="submit" style="align-self:flex-start">Сохранить</button>
+    </form>
+  </section>
+
+  <section class="gc-card" data-reveal data-shine style="--i:1;display:flex;flex-direction:column;gap:18px">
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <h2 style="font-size:24px">Смена пароля</h2>
+      <p class="muted">Для смены пароля введите текущий пароль.</p>
+    </div>
+    {% if password_form.non_field_errors %}<div class="gc-alert gc-alert--error" role="alert">{{ password_form.non_field_errors|join:" " }}</div>{% endif %}
+    <form method="post" novalidate style="display:flex;flex-direction:column;gap:16px">
+      {% csrf_token %}
+      <input type="hidden" name="action" value="password">
+      {% include 'accounts/_field.html' with field=password_form.old_password %}
+      {% include 'accounts/_field.html' with field=password_form.new_password1 show_help=True %}
+      {% include 'accounts/_field.html' with field=password_form.new_password2 %}
+      <button class="gc-btn gc-btn--ghost" type="submit" style="align-self:flex-start">Изменить пароль</button>
+    </form>
+  </section>
+</div>
+</div>
+{% endblock %}

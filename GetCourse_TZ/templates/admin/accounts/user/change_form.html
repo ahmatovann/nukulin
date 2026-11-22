@@ -1,0 +1,25 @@
+{% extends "admin/change_form.html" %}
+{% block form_top %}
+{% if original %}
+<section class="gc-ucard">
+  <div class="gc-ucard-cover" aria-hidden="true"><span></span><span></span></div>
+  <span class="gc-ucard-status {% if original.blocked %}is-blocked{% endif %}">{% if original.blocked %}Заблокирован{% else %}Активен{% endif %}</span>
+  <div class="gc-ucard-avatar">
+    <div class="gc-ucard-ring" style="--p: {{ completeness }}" role="img" aria-label="Профиль заполнен на {{ completeness }}%">
+      <div class="gc-ucard-in">
+        {% if original.avatar %}<img src="{{ original.avatar.url }}" alt="">{% else %}<span>{{ original.first_name|slice:":1"|upper }}{{ original.last_name|slice:":1"|upper }}</span>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="gc-ucard-body">
+    <h2 class="gc-ucard-name">{{ original.first_name }} {{ original.last_name }}</h2>
+    <p>{{ original.email }} · {% if original.is_staff %}Администратор{% else %}Пользователь{% endif %}</p>
+  </div>
+  <div class="gc-ucard-stats">
+    <div><strong>{{ completeness }}%</strong><span>Профиль заполнен</span></div>
+    <div><strong>{{ original.created_at|date:"d.m.Y" }}</strong><span>Регистрация</span></div>
+    <div><strong>{% if original.last_login %}{{ original.last_login|date:"d.m.Y" }}{% else %}—{% endif %}</strong><span>Последний вход</span></div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

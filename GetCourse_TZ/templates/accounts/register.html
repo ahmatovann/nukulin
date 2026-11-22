@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Регистрация{% endblock %}
+{% block content %}
+<section class="gc-card gc-auth" data-shine style="max-width:560px">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <span class="gc-eyebrow">GetCourse</span>
+    <h1 style="font-size:32px">Регистрация</h1>
+    <p class="muted">Создайте аккаунт, чтобы записываться на курсы и видеть свой прогресс.</p>
+  </div>
+
+  {% if form.non_field_errors %}
+    <div class="gc-alert gc-alert--error" role="alert">{% for e in form.non_field_errors %}{{ e }}{% endfor %}</div>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+    <div class="gc-form-2">
+      {% include 'accounts/_field.html' with field=form.first_name %}
+      {% include 'accounts/_field.html' with field=form.last_name %}
+    </div>
+    {% include 'accounts/_field.html' with field=form.email %}
+    {% include 'accounts/_field.html' with field=form.password1 show_help=True %}
+    {% include 'accounts/_field.html' with field=form.password2 %}
+    <button class="gc-btn gc-btn--block" type="submit">Зарегистрироваться</button>
+  </form>
+
+  <p class="gc-auth-switch muted">Уже есть аккаунт? <a href="{% url 'accounts:login' %}" style="font-weight:600">Войти</a></p>
+</section>
+{% endblock %}

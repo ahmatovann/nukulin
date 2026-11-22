@@ -1,0 +1,326 @@
+/* ==========================================================================
+   GetCourse — оформление админ-панели Django в стиле сайта (вариант C «Слива»)
+   Меняем стандартные переменные Django и добавляем стекло и анимации.
+   ========================================================================== */
+
+/* Всегда светлая тема (ТЗ: светлый фон), даже если в системе включена тёмная. */
+html:root,
+html[data-theme="light"],
+html[data-theme="dark"],
+html[data-theme="auto"] {
+  color-scheme: light;
+
+  --primary: #7442B8;
+  --secondary: #5E3197;
+  --accent: #7442B8;
+  --primary-fg: #FFFFFF;
+
+  --body-fg: #1E1B26;
+  --body-bg: #FFFFFF;
+  --body-quiet-color: #5E5A6B;
+  --body-medium-color: #3A3645;
+  --body-loud-color: #1E1B26;
+
+  --header-color: #1E1B26;
+  --header-branding-color: #7442B8;
+  --header-bg: rgba(255, 255, 255, .72);
+  --header-link-color: #1E1B26;
+
+  --breadcrumbs-fg: #5E5A6B;
+  --breadcrumbs-link-fg: #5E3197;
+  --breadcrumbs-bg: transparent;
+
+  --link-fg: #7442B8;
+  --link-hover-color: #5E3197;
+  --link-selected-fg: #5E3197;
+
+  --hairline-color: #EAE2F4;
+  --border-color: #DDD8E6;
+
+  --error-fg: #B0302A;
+  --message-success-bg: #E1F4E4;
+  --message-warning-bg: #FFF4D6;
+  --message-error-bg: #FCE6E3;
+
+  --darkened-bg: #F7F5FB;
+  --selected-bg: #EFE7FA;
+  --selected-row: #F3ECFC;
+
+  --button-fg: #FFFFFF;
+  --button-bg: #7442B8;
+  --button-hover-bg: #5E3197;
+  --default-button-bg: #5E3197;
+  --default-button-hover-bg: #7442B8;
+  --close-button-bg: #938DA3;
+  --close-button-hover-bg: #5E5A6B;
+  --delete-button-bg: #D1453B;
+  --delete-button-hover-bg: #B0302A;
+
+  --object-tools-fg: #FFFFFF;
+  --object-tools-bg: #7442B8;
+  --object-tools-hover-bg: #5E3197;
+
+  --font-family-primary: "Golos Text", Arial, sans-serif;
+
+  --gc-glass: rgba(255, 255, 255, .78);
+  --gc-edge: rgba(255, 255, 255, .95);
+  --gc-spring: cubic-bezier(.34, 1.32, .52, 1);
+  --gc-ease: cubic-bezier(.2, .8, .2, 1);
+}
+
+/* Переключатель тёмной темы не нужен. */
+.theme-toggle { display: none !important; }
+
+/* Текст 16 px, как требует ТЗ. */
+body { font-size: 1rem; background: #F7F5FB; }
+
+/* Фон с мягкими цветными пятнами — под стеклом. */
+body::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(560px 420px at 0% 0%, #E6D8F8 0%, rgba(230, 216, 248, 0) 70%),
+    radial-gradient(520px 440px at 100% 30%, #FADFE6 0%, rgba(250, 223, 230, 0) 70%),
+    radial-gradient(620px 480px at 40% 110%, #D9EFE6 0%, rgba(217, 239, 230, 0) 70%),
+    #F7F5FB;
+}
+#container { background: transparent; }
+
+/* ---------- Шапка: стеклянная полоса ---------- */
+#header {
+  position: sticky; top: 0; z-index: 30;
+  margin: 12px 12px 0; border-radius: 20px;
+  padding: 12px 24px;
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+  box-shadow: inset 0 0 0 1px var(--gc-edge), 0 8px 24px rgba(94, 49, 151, .08);
+}
+#site-name a { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.35rem; color: #1E1B26 !important; }
+#site-name small { font-weight: 500; font-size: .95rem; color: #5E5A6B; }
+.gc-admin-gem { animation: gc-float 5s ease-in-out infinite; }
+@keyframes gc-float { 50% { transform: translateY(-3px) rotate(4deg); } }
+#user-tools { font-size: .95rem; }
+#user-tools a, #logout-form button { border-bottom: 0; color: #5E3197 !important; font-weight: 600; }
+#user-tools a:hover, #logout-form button:hover { text-decoration: underline; }
+
+/* Хлебные крошки */
+div.breadcrumbs { padding: 14px 32px 4px; font-size: .95rem; }
+div.breadcrumbs a { font-weight: 600; }
+
+/* ---------- Появление содержимого ---------- */
+#content { animation: gc-page-in .45s var(--gc-ease) both; }
+@keyframes gc-page-in { from { opacity: 0; transform: translateY(12px); } }
+@view-transition { navigation: auto; }
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+#header { view-transition-name: gc-admin-header; }
+
+/* ---------- Блоки: стеклянные карточки ---------- */
+.module,
+#changelist .changelist-form-container,
+.inline-group {
+  background: var(--gc-glass);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  border-radius: 18px;
+  box-shadow: inset 0 0 0 1px var(--gc-edge), 0 1px 2px rgba(30, 27, 38, .04);
+  overflow: hidden;
+}
+.module h2, .module caption, .inline-group h2 {
+  background: linear-gradient(135deg, #7F4FC4, #5E3197);
+  font-size: 1rem; font-weight: 700; letter-spacing: .02em; padding: 12px 16px;
+}
+.module h2, .module caption, .module caption a, .module h2 a, .inline-group h2 { color: #FFFFFF !important; }
+ul.messagelist { margin: 12px 12px 0; padding: 0; }
+select { height: auto !important; min-height: 38px; padding: 6px 30px 6px 10px !important; }
+#nav-filter { border-radius: 12px !important; margin: 0 8px 12px; width: calc(100% - 16px) !important; padding: 8px 12px !important; }
+.form-row label, .aligned label { font-size: .95rem; }
+.help, p.help, div.help { font-size: .9rem; color: #5E5A6B; }
+#content-main .app-list .module, .dashboard .module { transition: transform .3s var(--gc-spring), box-shadow .3s ease; }
+.dashboard .module:hover { transform: translateY(-3px); box-shadow: inset 0 0 0 1px var(--gc-edge), 0 16px 32px rgba(94, 49, 151, .14); }
+.module table, .module th, .module td { background: transparent; }
+
+/* Боковое меню моделей */
+#nav-sidebar { background: transparent; border-right: 1px solid #EAE2F4; }
+#nav-sidebar .module { margin: 0 8px 12px; }
+#nav-sidebar .current-model { background: #EFE7FA; }
+#nav-sidebar .current-model th a { color: #5E3197; font-weight: 700; }
+#toggle-nav-sidebar { background: rgba(255, 255, 255, .7); border-radius: 0 12px 12px 0; color: #7442B8; }
+
+/* Строки таблиц */
+#result_list tbody tr, .module tbody tr { transition: background-color .18s ease; }
+#result_list tbody tr:hover { background: #F3ECFC; }
+#result_list thead th { background: #F7F5FB; color: #3A3645; }
+#result_list thead th a { color: #3A3645; }
+
+/* ---------- Кнопки ---------- */
+.button, input[type=submit], input[type=button], .submit-row input, a.button,
+.object-tools a, .selector-chooseall, .selector-clearall {
+  border-radius: 12px !important;
+  font-weight: 600;
+  transition: background-color .18s ease, transform .18s ease, box-shadow .2s ease !important;
+}
+.button:hover, input[type=submit]:hover, input[type=button]:hover, a.button:hover, .object-tools a:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(116, 66, 184, .28);
+}
+.button:active, input[type=submit]:active, a.button:active { transform: translateY(0) scale(.98); box-shadow: none; }
+.submit-row { background: rgba(255, 255, 255, .7); border-radius: 16px; border: 1px solid #EAE2F4; padding: 14px; }
+.submit-row a.deletelink { border-radius: 12px; }
+.object-tools a { padding: 6px 16px; }
+
+/* ---------- Поля ввода ---------- */
+input[type=text], input[type=password], input[type=email], input[type=url], input[type=number],
+input[type=tel], input[type=search], input[type=date], input[type=time], textarea, select, .vTextField {
+  border-radius: 10px !important;
+  border: 1px solid #DDD8E6 !important;
+  padding: 8px 10px;
+  font-size: 1rem;
+  transition: border-color .18s ease, box-shadow .2s ease;
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: #7442B8 !important;
+  box-shadow: 0 0 0 4px rgba(116, 66, 184, .15);
+}
+fieldset .form-row { border-bottom-color: #EAE2F4; }
+.errornote { border-radius: 12px; border: 1px solid #F2B8B2; background: #FCE6E3; color: #B0302A; }
+.errorlist li { border-radius: 8px; }
+
+/* Фильтры справа в списках */
+#changelist-filter { background: rgba(255, 255, 255, .8); border-radius: 18px; box-shadow: inset 0 0 0 1px var(--gc-edge); }
+#changelist-filter h2 { background: transparent; color: #1E1B26; }
+#changelist-filter li.selected a { color: #5E3197 !important; font-weight: 700; }
+#changelist #toolbar { background: transparent; border-bottom: 0; }
+
+/* Сообщения: выезжают сбоку */
+ul.messagelist li {
+  border-radius: 14px; margin: 0 0 8px; font-size: 1rem;
+  box-shadow: 0 8px 20px rgba(30, 27, 38, .08);
+  animation: gc-toast-in .45s var(--gc-spring) both;
+}
+@keyframes gc-toast-in { from { opacity: 0; transform: translateX(30px); } }
+
+/* ---------- Страница входа в админку ---------- */
+body.login #container {
+  max-width: 440px; margin: 10vh auto 0; border-radius: 24px; overflow: hidden;
+  background: rgba(255, 255, 255, .78);
+  -webkit-backdrop-filter: blur(22px) saturate(160%); backdrop-filter: blur(22px) saturate(160%);
+  box-shadow: inset 0 0 0 1px var(--gc-edge), 0 24px 50px rgba(94, 49, 151, .16);
+  animation: gc-page-in .5s var(--gc-ease) both;
+}
+body.login #header { margin: 0; border-radius: 0; position: static; box-shadow: none; background: transparent; }
+body.login .submit-row input { width: 100%; min-height: 46px; }
+
+/* Меньше движения — если анимации отключены в системе */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Печать */
+@media print {
+  body::before { display: none; }
+  #header, #nav-sidebar, .object-tools, #changelist-filter { display: none !important; }
+  .module { background: #fff; box-shadow: none; border: 1px solid #BDB7C8; }
+}
+
+/* Метки «есть тест / нет» */
+.gc-pill { display: inline-block; padding: 2px 10px; border-radius: 99px; background: #F1EEF5; color: #5E5A6B; font-size: .85rem; font-weight: 600; }
+.gc-pill--ok { background: #E1F4E4; color: #1C6B2E; }
+.gc-test-btn { display: inline-block; margin-right: 8px; }
+
+/* Подтверждение блокировки (UC-20) */
+.gc-confirm { max-width: 720px; animation: gc-page-in .4s var(--gc-ease) both; }
+.gc-confirm-list { margin: 12px 0 18px; padding-left: 20px; }
+.gc-confirm-list li { padding: 3px 0; }
+input[type=submit].gc-danger { background: #D1453B; }
+input[type=submit].gc-danger:hover { background: #B0302A; box-shadow: 0 10px 22px rgba(209, 69, 59, .28); }
+
+/* Вложенные блоки тестов и перетаскивание (django-nested-admin) */
+.djn-group .djn-inline-form { border-radius: 14px; }
+.djn-drag-handler { cursor: grab !important; }
+.djn-item.ui-sortable-helper, .djn-item.djn-dragging { box-shadow: 0 18px 36px rgba(94, 49, 151, .25) !important; transform: rotate(-.6deg); }
+.djn-group-nested { background: rgba(247, 245, 251, .7); border-radius: 12px; }
+.djn-add-item a { color: #7442B8 !important; font-weight: 700; }
+
+/* ---------- Карточка пользователя (страница пользователя) ---------- */
+@property --p { syntax: '<number>'; inherits: true; initial-value: 0; }
+.gc-ucard {
+  position: relative; max-width: 560px; margin: 0 0 24px; padding: 8px 8px 0; border-radius: 24px; overflow: hidden;
+  background: rgba(255, 255, 255, .85); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .95), 0 18px 40px rgba(94, 49, 151, .12);
+  animation: gc-page-in .5s var(--gc-ease) both;
+}
+.gc-ucard-cover { position: relative; height: 130px; border-radius: 18px; overflow: hidden; background: url('../img/user-cover.jpg') center / cover no-repeat, linear-gradient(160deg, #DCCBF5, #EBDDF9 45%, #F8E4EC); animation: gc-cover-in 1.2s var(--gc-ease) both; }
+@keyframes gc-cover-in { from { opacity: 0; transform: scale(1.06); } }
+.gc-ucard-cover span { display: none; }
+.gc-ucard-cover span { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, .75); filter: blur(16px); animation: gc-cloud 18s ease-in-out infinite alternate; }
+.gc-ucard-cover span:nth-child(1) { width: 220px; height: 90px; left: 6%; top: 20px; }
+.gc-ucard-cover span:nth-child(2) { width: 180px; height: 80px; right: 4%; top: 40px; animation-delay: -8s; }
+@keyframes gc-cloud { to { transform: translateX(50px) scale(1.1); } }
+.gc-ucard-status { position: absolute; top: 20px; right: 20px; padding: 6px 14px; border-radius: 99px; background: rgba(255, 255, 255, .9); color: #1C6B2E; font-weight: 700; box-shadow: 0 6px 16px rgba(30, 27, 38, .1); }
+.gc-ucard-status.is-blocked { color: #B0302A; }
+.gc-ucard-avatar { display: flex; justify-content: center; margin-top: -62px; position: relative; }
+.gc-ucard-ring {
+  width: 118px; height: 118px; border-radius: 50%; padding: 5px;
+  background: conic-gradient(from 200deg, #7442B8 0%, #B07AE0 calc(var(--p) * .55%), #F2A7B8 calc(var(--p) * 1%), #E6DFF1 calc(var(--p) * 1%));
+  animation: gc-ring-fill 1.2s var(--gc-ease) .15s both;
+}
+@keyframes gc-ring-fill { from { --p: 0; } }
+.gc-ucard-in { width: 100%; height: 100%; border-radius: 50%; overflow: hidden; border: 4px solid #fff; background: linear-gradient(135deg, #8C5CD0, #5E3197); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 800; }
+.gc-ucard-in img { width: 100%; height: 100%; object-fit: cover; }
+.gc-ucard-body { text-align: center; padding: 10px 16px 14px; }
+.gc-ucard-name { margin: 0; padding: 0; background: none !important; color: #1E1B26 !important; font-size: 1.6rem; font-weight: 800; }
+.gc-ucard-body p { margin: 6px 0 0; color: #5E5A6B; font-size: 1rem; }
+.gc-ucard-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0 -8px; border-top: 1px solid #EAE2F4; background: #FBF9FE; }
+.gc-ucard-stats div { display: flex; flex-direction: column; align-items: center; padding: 14px 6px; }
+.gc-ucard-stats div + div { border-left: 1px solid #EAE2F4; }
+.gc-ucard-stats strong { font-size: 1.25rem; color: #1E1B26; }
+.gc-ucard-stats span { color: #5E5A6B; font-size: .9rem; }
+.djn-group .djn-tabular input[name$="-order"] { width: 4em; text-align: center; }
+.djn-tabular td.original p { font-size: .8rem; }
+/* В тестах номер порядка не нужен — порядок задаётся перетаскиванием */
+.djn-group-nested .field-order, .djn-group-nested th.column-order, .djn-group-nested td.field-order,
+.inline-group .djn-group-courses-question > .djn-items > .djn-item > fieldset .form-row.field-order { display: none; }
+.cancel-link { padding: 10px 18px !important; }
+
+/* ---------- Карточка курса (страница курса) ---------- */
+.gc-ccard {
+  position: relative; max-width: 620px; margin: 0 0 24px; padding: 8px; border-radius: 24px; overflow: hidden;
+  background: rgba(255, 255, 255, .88); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .95), 0 18px 40px rgba(94, 49, 151, .12);
+  animation: gc-page-in .5s var(--gc-ease) both;
+}
+.gc-ccard-cover {
+  height: 170px; border-radius: 18px; background-size: cover; background-position: center;
+  animation: gc-cover-in 1.1s var(--gc-ease) both;
+}
+.gc-ccard-cover.is-default { background-image: url('../img/course-cover.jpg'), linear-gradient(135deg, #8C5CD0, #5E3197); }
+.gc-ccard-status {
+  position: absolute; top: 20px; right: 20px; padding: 6px 14px; border-radius: 99px;
+  background: rgba(255, 255, 255, .92); color: #5E5A6B; font-weight: 700; box-shadow: 0 6px 16px rgba(30, 27, 38, .1);
+}
+.gc-ccard-status.is-pub { color: #1C6B2E; }
+.gc-ccard-body { padding: 16px 16px 12px; display: flex; flex-direction: column; gap: 6px; }
+.gc-ccard-eyebrow { font-size: .85rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #7442B8; }
+.gc-ccard-title { margin: 0; padding: 0; background: none !important; color: #1E1B26 !important; font-size: 1.7rem; font-weight: 800; text-transform: none; letter-spacing: 0; }
+.gc-ccard-progress { display: flex; align-items: center; gap: 12px; color: #5E5A6B; margin-top: 4px; }
+.gc-ccard-bar { flex: 0 0 180px; height: 8px; border-radius: 99px; background: #EFE7FA; overflow: hidden; }
+.gc-ccard-bar span { display: block; height: 100%; width: var(--w); border-radius: 99px; background: #7442B8; animation: gc-bar-grow 1.1s var(--gc-ease) .3s both; }
+@keyframes gc-bar-grow { from { width: 0; } }
+.gc-ccard-stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 4px -8px 0; border-top: 1px solid #EAE2F4; background: #FBF9FE; }
+.gc-ccard-stats div { display: flex; flex-direction: column; align-items: center; padding: 14px 6px; }
+.gc-ccard-stats div + div { border-left: 1px solid #EAE2F4; }
+.gc-ccard-stats strong { font-size: 1.35rem; color: #1E1B26; }
+.gc-ccard-stats span { color: #5E5A6B; font-size: .9rem; }
+.gc-ccard-actions { padding: 12px 8px 4px; }
+.gc-ccard-actions .button { display: inline-block; padding: 10px 18px; }
+
+/* Пустые списки и «ничего не найдено» с картинкой */
+.gc-admin-empty, .st-empty-img-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; padding: 36px 16px; }
+.gc-admin-empty img, .st-empty-img {
+  width: 230px; max-width: 70%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 22px;
+  box-shadow: 0 14px 30px rgba(94, 49, 151, .16);
+  animation: gc-empty-in .7s var(--gc-spring) both, gc-float-y 5s ease-in-out .7s infinite;
+}
+.gc-admin-empty h3 { margin: 6px 0 0; font-size: 1.3rem; color: #1E1B26; background: none; padding: 0; text-transform: none; }
+.gc-admin-empty p { margin: 0; color: #5E5A6B; font-size: 1rem; }
+@keyframes gc-empty-in { from { opacity: 0; transform: scale(.8) translateY(10px); } }
+@keyframes gc-float-y { 50% { transform: translateY(-5px); } }
+.st-empty-img.is-small { width: 140px; border-radius: 16px; }

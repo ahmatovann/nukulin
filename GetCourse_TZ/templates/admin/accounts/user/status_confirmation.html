@@ -1,0 +1,34 @@
+{% extends "admin/base_site.html" %}
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Начало</a> ›
+  <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a> ›
+  <a href="{% url 'admin:accounts_user_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a> ›
+  {{ title }}
+</div>
+{% endblock %}
+{% block content %}
+<div class="gc-confirm module">
+  <h2>{{ title }}</h2>
+  <div style="padding:18px 20px">
+    {% if block %}
+      <p>Эти пользователи не смогут войти в систему, а их текущие сеансы будут завершены:</p>
+    {% else %}
+      <p>Эти пользователи снова смогут входить в систему:</p>
+    {% endif %}
+    <ul class="gc-confirm-list">
+      {% for u in users %}<li><strong>{{ u.first_name }} {{ u.last_name }}</strong> — {{ u.email }}</li>{% endfor %}
+    </ul>
+    <form method="post">
+      {% csrf_token %}
+      {% for u in users %}<input type="hidden" name="{{ action_checkbox_name }}" value="{{ u.pk }}">{% endfor %}
+      <input type="hidden" name="action" value="{{ action }}">
+      <input type="hidden" name="post" value="yes">
+      <div class="submit-row" style="justify-content:flex-start">
+        <input type="submit" value="{% if block %}Да, заблокировать{% else %}Да, разблокировать{% endif %}" class="{% if block %}gc-danger{% endif %}">
+        <a href="{% url 'admin:accounts_user_changelist' %}" class="button cancel-link">Отмена</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

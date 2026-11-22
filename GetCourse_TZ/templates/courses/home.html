@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+{% load ru %}
+{% block title %}Главная{% endblock %}
+{% block content %}
+<section class="gc-card gc-hero" data-shine>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <span class="gc-eyebrow">Онлайн-курсы</span>
+    {% if user.is_authenticated %}
+      <h1>Здравствуйте, {{ user.first_name }}!</h1>
+      {% if user.is_staff %}
+        <p class="muted" style="font-size:18px">Управляйте курсами, уроками и пользователями в админ-панели.</p>
+        <div class="gc-hero-actions"><a class="gc-btn" href="{% url 'admin:index' %}">Открыть админ-панель</a></div>
+      {% else %}
+        <p class="muted" style="font-size:18px">Продолжайте обучение или выберите новый курс в каталоге.</p>
+        <div class="gc-hero-actions">
+          <a class="gc-btn" href="{% url 'courses:my_courses' %}">Мои курсы</a>
+          <a class="gc-btn gc-btn--ghost" href="{% url 'courses:catalog' %}">Каталог курсов</a>
+        </div>
+      {% endif %}
+    {% else %}
+      <h1>Учитесь по шагам: каждый урок открывается после теста</h1>
+      <p class="muted" style="font-size:18px">Зарегистрируйтесь, чтобы записываться на курсы, проходить уроки по порядку и видеть свой прогресс.</p>
+      <div class="gc-hero-actions">
+        <a class="gc-btn" href="{% url 'accounts:register' %}">Зарегистрироваться</a>
+        <a class="gc-btn gc-btn--ghost" href="{% url 'courses:catalog' %}">Посмотреть курсы</a>
+      </div>
+    {% endif %}
+  </div>
+  <div class="gc-hero-art" aria-hidden="true">
+    <svg viewBox="0 0 200 240">
+      <defs>
+        <linearGradient id="heroGem" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#B28BE6"/><stop offset="1" stop-color="#5E3197"/>
+        </linearGradient>
+      </defs>
+      <ellipse cx="100" cy="226" rx="56" ry="8" fill="#5E3197" opacity=".15"/>
+      <path d="M100 8 L180 92 L100 212 L20 92 Z" fill="url(#heroGem)"/>
+      <path d="M20 92 H180 M100 8 L70 92 L100 212 L130 92 Z" fill="none" stroke="#fff" stroke-opacity=".55" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M100 8 L130 92 L180 92 Z" fill="#fff" opacity=".28"/>
+      <path d="M20 92 L70 92 L100 212 Z" fill="#2A0F52" opacity=".18"/>
+    </svg>
+  </div>
+</section>
+
+{% if user.is_staff %}
+<section style="display:flex;flex-direction:column;gap:18px">
+  <h2 data-reveal>Быстрые действия</h2>
+  <div class="gc-actions">
+    <a class="gc-action" href="{% url 'admin:courses_course_add' %}" data-reveal style="--i:0;--tint:116,66,184">
+      <span class="gc-action-cover" aria-hidden="true"></span>
+      <span class="gc-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+      <span class="gc-action-body">
+        <strong>Новый курс</strong>
+        <span class="muted">Создать курс-черновик и добавить уроки</span>
+        <span class="gc-action-meta">Курсов: {{ counts.courses }}</span>
+      </span>
+      <span class="gc-action-arrow" aria-hidden="true">→</span>
+    </a>
+    <a class="gc-action" href="{% url 'admin:feed_post_changelist' %}" data-reveal style="--i:1;--tint:200,90,140">
+      <span class="gc-action-cover" aria-hidden="true"></span>
+      <span class="gc-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M7 9h10M7 13h7"/></svg></span>
+      <span class="gc-action-body">
+        <strong>Лента</strong>
+        <span class="muted">Анонсы и новости на главной странице</span>
+        <span class="gc-action-meta">Публикаций: {{ posts|length }}</span>
+      </span>
+      <span class="gc-action-arrow" aria-hidden="true">→</span>
+    </a>
+    <a class="gc-action" href="{% url 'admin_statistics' %}" data-reveal style="--i:2;--tint:47,128,180">
+      <span class="gc-action-cover" aria-hidden="true"></span>
+      <span class="gc-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M5 20V11M12 20V5M19 20v-6"/></svg></span>
+      <span class="gc-action-body">
+        <strong>Статистика</strong>
+        <span class="muted">Воронка, тесты, сложные вопросы, отчёт в Excel</span>
+        <span class="gc-action-meta">Записей на курсы: {{ counts.enrollments }}</span>
+      </span>
+      <span class="gc-action-arrow" aria-hidden="true">→</span>
+    </a>
+    <a class="gc-action" href="{% url 'admin:accounts_user_changelist' %}" data-reveal style="--i:3;--tint:47,140,80">
+      <span class="gc-action-cover" aria-hidden="true"></span>
+      <span class="gc-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17.5" cy="9" r="2.5"/><path d="M16 14.2a5 5 0 0 1 6 4.8"/></svg></span>
+      <span class="gc-action-body">
+        <strong>Пользователи</strong>
+        <span class="muted">Поиск, блокировка и разблокировка</span>
+        <span class="gc-action-meta">Пользователей: {{ counts.users }}</span>
+      </span>
+      <span class="gc-action-arrow" aria-hidden="true">→</span>
+    </a>
+  </div>
+</section>
+{% endif %}
+
+<section class="gc-feed-layout">
+  <div class="gc-block">
+    <div class="gc-section-head" data-reveal>
+      <h2 class="gc-block-title">Лента школы</h2>
+    </div>
+
+    {% for post in posts %}
+      <article class="gc-card gc-post{% if post.pinned %} is-pinned{% endif %}" data-reveal data-shine style="--i:{{ forloop.counter0 }}">
+        {% if post.pinned %}
+          <span class="gc-pin">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6l-1 6 3 3H7l3-3z"/><path d="M12 13v7"/></svg>
+            Закреплено
+          </span>
+        {% endif %}
+        <h3>{{ post.title }}</h3>
+        <time class="muted gc-post-date" datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"j E Y" }}</time>
+        {% if post.image %}
+          <img class="gc-post-image" src="{{ post.image.url }}" alt="{{ post.title }}">
+        {% endif %}
+        <div class="gc-post-text">{{ post.text|linebreaks }}</div>
+        {% if post.course %}
+          <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_detail' post.course.pk %}">Открыть курс «{{ post.course.title }}»</a>
+        {% endif %}
+      </article>
+    {% empty %}
+      <div class="gc-card gc-empty" data-reveal>
+        <h3>Публикаций пока нет</h3>
+        <p class="muted">Здесь появятся анонсы курсов и новости школы.</p>
+        <a class="gc-btn" href="{% url 'courses:catalog' %}">Посмотреть каталог курсов</a>
+      </div>
+    {% endfor %}
+  </div>
+
+  <aside class="gc-card gc-popular" data-reveal data-shine aria-label="Популярные курсы недели">
+    <h2 class="gc-block-title" style="font-size:19px">Популярное за неделю</h2>
+    <p class="muted" style="font-size:14px">Курсы, на которые чаще всего записывались за последние 7 дней.</p>
+    {% if popular_courses %}
+      <ol class="gc-rank">
+        {% for course in popular_courses %}
+          <li>
+            <span class="gc-rank-num" aria-hidden="true">{{ forloop.counter }}</span>
+            <span class="gc-rank-body">
+              <a href="{% url 'courses:course_detail' course.pk %}">{{ course.title }}</a>
+              <small class="muted">
+                {% if course.week_enrollments %}+{{ course.week_enrollments }} {{ course.week_enrollments|plural:"пользователь,пользователя,пользователей" }} за неделю{% else %}Новый курс{% endif %}
+              </small>
+            </span>
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="muted">Опубликованных курсов пока нет.</p>
+    {% endif %}
+  </aside>
+</section>
+
+{% if not user.is_authenticated %}
+<section style="display:flex;flex-direction:column;gap:18px">
+  <h2 data-reveal>Как это работает</h2>
+  <div class="gc-steps">
+    <div class="gc-card" data-reveal data-shine style="--i:0"><div class="gc-step-num">1</div><h3>Выберите курс</h3><p class="muted" style="margin-top:6px">По названию, категории или уровню сложности.</p></div>
+    <div class="gc-card" data-reveal data-shine style="--i:1"><div class="gc-step-num">2</div><h3>Проходите уроки по порядку</h3><p class="muted" style="margin-top:6px">Текст, видео и материалы. Следующий урок откроется после теста.</p></div>
+    <div class="gc-card" data-reveal data-shine style="--i:2"><div class="gc-step-num">3</div><h3>Сдавайте тесты</h3><p class="muted" style="margin-top:6px">Проходной балл — 70%. Пересдавать можно сколько угодно, засчитывается лучший результат.</p></div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

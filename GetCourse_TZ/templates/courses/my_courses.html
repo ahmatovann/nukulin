@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load ru %}
+{% block title %}Мои курсы{% endblock %}
+{% block content %}
+<section class="gc-section-head" data-reveal>
+  <div>
+    <span class="gc-eyebrow">Обучение</span>
+    <h1>Мои курсы</h1>
+  </div>
+  <a class="gc-btn gc-btn--ghost" href="{% url 'courses:catalog' %}">Каталог курсов</a>
+</section>
+
+{% if total %}
+  {% if in_progress %}
+    <section class="gc-block">
+      <h2 class="gc-block-title" data-reveal>В процессе</h2>
+      {% for row in in_progress %}
+        <article class="gc-card gc-enrolled" data-reveal data-shine style="--i:{{ forloop.counter0 }}">
+          <div class="gc-enrolled-body">
+            <h3><a href="{% url 'courses:course_detail' row.course.pk %}">{{ row.course.title }}</a></h3>
+            <div class="gc-progress-top">
+              <span class="muted">Пройдено {{ row.summary.done }} из {{ row.summary.total }} {{ row.summary.total|plural:"урока,уроков,уроков" }}</span>
+              <strong>{{ row.summary.percent }}%</strong>
+            </div>
+            <span class="gc-bar"><span style="width:{{ row.summary.percent }}%"></span></span>
+            {% if row.summary.next_item %}
+              <small class="muted">Следующий урок: {{ row.summary.next_item.lesson.title }}</small>
+            {% endif %}
+          </div>
+          {% if row.summary.next_item %}
+            <a class="gc-btn" href="{% url 'courses:lesson_detail' row.summary.next_item.lesson.pk %}">Продолжить</a>
+          {% else %}
+            <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_detail' row.course.pk %}">Открыть курс</a>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if completed %}
+    <section class="gc-block">
+      <h2 class="gc-block-title" data-reveal>Завершённые</h2>
+      {% for row in completed %}
+        <article class="gc-card gc-enrolled is-done" data-reveal data-shine style="--i:{{ forloop.counter0 }}">
+          <div class="gc-enrolled-body">
+            <h3><a href="{% url 'courses:course_detail' row.course.pk %}">{{ row.course.title }}</a></h3>
+            <span class="gc-badge gc-badge--success">Курс пройден{% if row.enrollment.completed_at %} {{ row.enrollment.completed_at|date:"j E Y" }}{% endif %}</span>
+          </div>
+          <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_progress' row.course.pk %}">Результаты</a>
+        </article>
+      {% endfor %}
+    </section>
+  {% endif %}
+{% else %}
+  <div class="gc-card gc-empty" data-reveal>
+    <h3>Вы пока не записаны ни на один курс</h3>
+    <p class="muted">Выберите курс в каталоге и нажмите «Записаться». Первый урок откроется сразу.</p>
+    <a class="gc-btn" href="{% url 'courses:catalog' %}">Открыть каталог</a>
+  </div>
+{% endif %}
+{% endblock %}

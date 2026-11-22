@@ -64,6 +64,9 @@ class User(AbstractUser):
         'Дата регистрации',
         auto_now_add=True,
     )
+    # Telegram: привязывается самим пользователем через бота (кнопка в профиле).
+    telegram_chat_id = models.BigIntegerField('Telegram: чат', null=True, blank=True, unique=True)
+    telegram_username = models.CharField('Telegram: имя', max_length=64, blank=True)
 
     objects = UserManager()
 

@@ -1,0 +1,29 @@
+{% extends "admin/change_form.html" %}
+{% load static %}
+{% block form_top %}
+{% if original and course_card %}
+<section class="gc-ccard">
+  <div class="gc-ccard-cover{% if not original.cover_image %} is-default{% endif %}"{% if original.cover_image %} style="background-image:url('{{ original.cover_image.url }}')"{% endif %} aria-hidden="true"></div>
+  <span class="gc-ccard-status {% if original.status == 'published' %}is-pub{% endif %}">{% if original.status == 'published' %}● Опубликован{% else %}○ Черновик{% endif %}</span>
+  <div class="gc-ccard-body">
+    <span class="gc-ccard-eyebrow">{{ original.category.name }} · {{ original.get_difficulty_display }}</span>
+    <h2 class="gc-ccard-title">{{ original.title }}</h2>
+    {% if course_card.enrolled %}
+      <div class="gc-ccard-progress" title="Средний прогресс записавшихся">
+        <span class="gc-ccard-bar"><span style="--w: {{ course_card.avg_progress }}%"></span></span>
+        <span>средний прогресс <b>{{ course_card.avg_progress }}%</b></span>
+      </div>
+    {% endif %}
+  </div>
+  <div class="gc-ccard-stats">
+    <div><strong>{{ course_card.lessons }}</strong><span>Уроков</span></div>
+    <div><strong>{{ course_card.tests }}</strong><span>Тестов</span></div>
+    <div><strong>{{ course_card.enrolled }}</strong><span>Записано</span></div>
+    <div><strong>{{ course_card.completed_pct }}%</strong><span>Завершили</span></div>
+  </div>
+  <div class="gc-ccard-actions">
+    <a class="button" href="{% url 'admin_statistics' %}?course={{ original.pk }}">Статистика курса</a>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

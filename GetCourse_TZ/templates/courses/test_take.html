@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Тест: {{ lesson.title }}{% endblock %}
+{% block content %}
+<nav class="gc-crumbs" aria-label="Навигация">
+  <a href="{% url 'courses:course_detail' course.pk %}">{{ course.title }}</a>
+  <span aria-hidden="true">/</span>
+  <a href="{% url 'courses:lesson_detail' lesson.pk %}">{{ lesson.title }}</a>
+</nav>
+
+<section class="gc-section-head" data-reveal>
+  <div>
+    <span class="gc-eyebrow">Проверка знаний</span>
+    <h1>Тест к уроку «{{ lesson.title }}»</h1>
+    <p class="muted">Вопросов: {{ questions|length }}. Тест сдан при результате от {{ test.pass_score }}%.{% if best %} Лучший результат — {{ best.score }}%.{% endif %}</p>
+  </div>
+</section>
+
+<form class="gc-quiz" method="post">
+  {% csrf_token %}
+  {% for question in questions %}
+    <fieldset class="gc-card gc-question" data-reveal data-shine style="--i:{{ forloop.counter0 }}">
+      <legend class="visually-hidden">Вопрос {{ forloop.counter }}</legend>
+      <div class="gc-question-head">
+        <span class="gc-question-num" aria-hidden="true">{{ forloop.counter }}</span>
+        <div>
+          <p class="gc-question-text">{{ question.text }}</p>
+          <small class="muted">{% if question.qtype == 'multiple' %}Выберите все подходящие ответы{% else %}Выберите один ответ{% endif %}</small>
+        </div>
+      </div>
+      <ul class="gc-options">
+        {% for answer in question.answers.all %}
+          <li>
+            <label class="gc-option">
+              <input type="{% if question.qtype == 'multiple' %}checkbox{% else %}radio{% endif %}" name="question_{{ question.pk }}" value="{{ answer.pk }}">
+              <span>{{ answer.text }}</span>
+            </label>
+          </li>
+        {% endfor %}
+      </ul>
+    </fieldset>
+  {% endfor %}
+
+  <div class="gc-hero-actions">
+    <button class="gc-btn" type="submit">Отправить ответы</button>
+    <a class="gc-btn gc-btn--ghost" href="{% url 'courses:lesson_detail' lesson.pk %}">Вернуться к уроку</a>
+  </div>
+</form>
+{% endblock %}

@@ -2,6 +2,14 @@
 import os
 from dotenv import load_dotenv
 
+# Python проверяет HTTPS-сертификаты через хранилище Windows (как браузер).
+# Нужно, если антивирус или сеть подменяют сертификаты: без этого не работают Telegram и почта.
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except ImportError:
+    pass
+
 """
 Django settings for config project.
 
@@ -27,13 +35,42 @@ if pg_bin:
     os.environ['PATH'] = pg_bin + os.pathsep + os.environ.get('PATH', '')
 
 os.environ['PSYCOPG_IMPL'] = 'python'
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-pcq0lll078eswe8^%#*7%ajk2oiq2dx-ql4&!o75)pnz7lu&+%'
+# Секретный ключ подписывает сессии и формы. На сервере его задают в .env,
+# в коде остаётся только запасное значение для работы на своём компьютере.
+SECRET_KEY = os.getenv(
+    'SECRET_KEY',
+    'django-insecure-development-only-key-set-SECRET_KEY-in-env-file',
+)
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# Режим отладки. На сервере в .env должно быть DEBUG=False,
+# иначе при ошибке посетитель увидит внутренности проекта.
+DEBUG = os.getenv('DEBUG', 'True').strip().lower() not in ('0', 'false', 'no', 'нет')
 
-ALLOWED_HOSTS = []
+# Адреса, по которым разрешено открывать сайт. На сервере их перечисляют в .env
+# через запятую, например: ALLOWED_HOSTS=getcourse.kg,www.getcourse.kg
+ALLOWED_HOSTS = [host.strip() for host in os.getenv('ALLOWED_HOSTS', '').split(',') if host.strip()]
+if DEBUG and not ALLOWED_HOSTS:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]', 'testserver']
+
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
+    if origin.strip()
+]
+
+# Защита соединения на сервере (НФТ-10 — работа по HTTPS, НФТ-12 — защита от атак).
+# На своём компьютере эти настройки не включаются, иначе сайт не откроется по http.
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
 
 
 # Application definition
@@ -45,8 +82,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'nested_admin',
     'accounts',
     'courses',
+    'feed',
 ]
 
 MIDDLEWARE = [
@@ -56,6 +95,7 @@ MIDDLEWARE = [
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'accounts.middleware.BlockedUserMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
@@ -64,7 +104,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -82,16 +122,27 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST', '127.0.0.1'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+# Рабочая база — PostgreSQL 15, данные для подключения берутся из .env.
+# Если файла .env ещё нет (например, проект только что скачали с GitHub),
+# запускается SQLite, чтобы сайт можно было посмотреть сразу.
+if os.getenv('DB_NAME'):
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST', '127.0.0.1'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # Password validation
@@ -128,6 +179,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # Загруженные файлы: обложки курсов, файлы уроков, фото профиля
 MEDIA_URL = 'media/'
@@ -138,3 +190,32 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
+
+# Вход и выход
+LOGIN_URL = 'accounts:login'
+LOGIN_REDIRECT_URL = 'accounts:profile'  # UC-6, шаг 5: пользователь попадает в свой кабинет
+LOGOUT_REDIRECT_URL = 'courses:home'
+
+# UC-7: сеанс завершается автоматически через 24 часа
+SESSION_COOKIE_AGE = 60 * 60 * 24
+
+# Письма для восстановления пароля (UC-6, 1а).
+# Настройки почты берутся из .env. Если EMAIL_HOST_USER не задан,
+# письмо просто печатается в терминале (удобно для проверки без интернета).
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'True'
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
+EMAIL_TIMEOUT = 20
+EMAIL_BACKEND = (
+    'django.core.mail.backends.smtp.EmailBackend' if EMAIL_HOST_USER
+    else 'django.core.mail.backends.console.EmailBackend'
+)
+DEFAULT_FROM_EMAIL = f'GetCourse <{EMAIL_HOST_USER}>' if EMAIL_HOST_USER else 'GetCourse <noreply@getcourse.local>'
+
+# Telegram-бот (напоминания неактивным и коды восстановления пароля).
+# Токен выдаёт @BotFather. Без токена сайт работает, просто без Telegram.
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN', '')
+TELEGRAM_BOT_USERNAME = os.getenv('TELEGRAM_BOT_USERNAME', '').lstrip('@')

@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% load ru %}
+{% block title %}{{ course.title }}{% endblock %}
+{% block content %}
+<section class="gc-card gc-course-head" data-reveal>
+  <div class="gc-cover">
+    {% if course.cover_image %}
+      <img src="{{ course.cover_image.url }}" alt="">
+    {% else %}
+      <span class="gc-cover-ph" aria-hidden="true">{{ course.title|first|upper }}</span>
+    {% endif %}
+  </div>
+  <div class="gc-course-head-body">
+    {% if course.status != 'published' %}
+      <span class="gc-badge gc-badge--muted">Черновик — виден только администратору</span>
+    {% endif %}
+    <span class="gc-eyebrow">{{ course.category.name }}</span>
+    <h1>{{ course.title }}</h1>
+    <div class="gc-course-meta" style="margin-top:0">
+      <span class="gc-badge">{{ course.get_difficulty_display }} уровень</span>
+      <span class="gc-badge gc-badge--muted">{{ track|length }} {{ track|length|plural:"урок,урока,уроков" }}</span>
+      {% if students_count %}<span class="gc-badge gc-badge--muted">{{ students_count }} {{ students_count|plural:"участник,участника,участников" }}</span>{% endif %}
+    </div>
+    <p class="muted">{{ course.description|linebreaksbr }}</p>
+
+    {% if enrollment %}
+      <div class="gc-progress-block">
+        <div class="gc-progress-top">
+          <span>Пройдено {{ summary.done }} из {{ summary.total }}</span>
+          <strong>{{ summary.percent }}%</strong>
+        </div>
+        <span class="gc-bar{% if summary.completed %} is-done{% endif %}"><span style="width:{{ summary.percent }}%"></span></span>
+      </div>
+      <div class="gc-hero-actions">
+        {% if summary.completed %}
+          <span class="gc-badge gc-badge--success">Курс пройден</span>
+          <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_progress' course.pk %}">Мои результаты</a>
+        {% elif summary.next_item %}
+          <a class="gc-btn" href="{% url 'courses:lesson_detail' summary.next_item.lesson.pk %}">
+            {% if summary.done %}Продолжить обучение{% else %}Начать обучение{% endif %}
+          </a>
+          <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_progress' course.pk %}">Мой прогресс</a>
+        {% endif %}
+      </div>
+    {% elif user.is_authenticated %}
+      {% if track %}
+        <form method="post" action="{% url 'courses:enroll' course.pk %}">
+          {% csrf_token %}
+          <button class="gc-btn" type="submit">Записаться на курс</button>
+        </form>
+      {% else %}
+        <button class="gc-btn" type="button" disabled>В курсе пока нет уроков</button>
+      {% endif %}
+    {% else %}
+      <div class="gc-hero-actions">
+        <a class="gc-btn" href="{% url 'accounts:login' %}?next={% url 'courses:course_detail' course.pk %}">Войти и записаться</a>
+        <a class="gc-btn gc-btn--ghost" href="{% url 'accounts:register' %}">Регистрация</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<div class="gc-two">
+  {% if outcomes %}
+    <section class="gc-card gc-block" data-reveal data-shine>
+      <h2 class="gc-block-title">Чему вы научитесь</h2>
+      <ul class="gc-outcomes">
+        {% for item in outcomes %}<li>{{ item }}</li>{% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  <section class="gc-card gc-block" data-reveal data-shine>
+    <h2 class="gc-block-title">Программа курса</h2>
+    {% if not enrollment %}
+      <p class="muted" style="font-size:15px">Уроки откроются после записи. Первый доступен сразу, каждый следующий — после сдачи теста предыдущего.</p>
+    {% endif %}
+    {% if track %}
+      <ol class="gc-lessons">
+        {% for item in track %}
+          <li class="is-{{ item.state }}">
+            <span class="gc-lesson-num{% if item.is_done %} is-done{% endif %}" aria-hidden="true">
+              {% if item.is_done %}✓{% else %}{{ item.number }}{% endif %}
+            </span>
+            <span class="gc-lesson-text">
+              {% if item.is_open and enrollment %}
+                <a href="{% url 'courses:lesson_detail' item.lesson.pk %}">{{ item.lesson.title }}</a>
+              {% else %}
+                {{ item.lesson.title }}
+              {% endif %}
+              <small class="muted">
+                {% if item.is_done %}Урок пройден{% elif item.state == 'current' %}{% if enrollment %}Можно изучать сейчас{% else %}Откроется после записи{% endif %}{% else %}Откроется после теста предыдущего урока{% endif %}
+              </small>
+            </span>
+            {% if item.is_locked or not enrollment %}
+              <span class="lock" title="Урок закрыт" aria-label="Урок закрыт">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+              </span>
+            {% elif item.state == 'current' %}
+              <a class="gc-btn gc-btn--ghost" style="margin-left:auto;min-height:38px;padding:0 14px;font-size:15px" href="{% url 'courses:lesson_detail' item.lesson.pk %}">Открыть</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    {% else %}
+      <p class="muted">Уроки пока не добавлены.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

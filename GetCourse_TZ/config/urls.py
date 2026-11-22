@@ -17,10 +17,20 @@ Including another URLconf
 from django.conf import settings
 from django.conf.urls.static import static
 from django.contrib import admin
-from django.urls import path
+from django.urls import include, path
+
+from accounts.views import admin_login_redirect
+from courses.admin_views import export_report, remind_inactive, statistics
 
 urlpatterns = [
+    path('admin/login/', admin_login_redirect),  # вход в админку — через общую страницу входа
+    path('admin/statistics/', statistics, name='admin_statistics'),
+    path('admin/statistics/<int:pk>/report.<str:fmt>', export_report, name='admin_statistics_export'),
+    path('admin/statistics/<int:pk>/remind/', remind_inactive, name='admin_statistics_remind'),
+    path('_nested_admin/', include('nested_admin.urls')),
     path('admin/', admin.site.urls),
+    path('accounts/', include('accounts.urls')),
+    path('', include('courses.urls')),
 ]
 
 if settings.DEBUG:

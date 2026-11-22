@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}{{ lesson.title }}{% endblock %}
+{% block content %}
+<nav class="gc-crumbs" aria-label="Навигация">
+  <a href="{% url 'courses:my_courses' %}">Мои курсы</a>
+  <span aria-hidden="true">/</span>
+  <a href="{% url 'courses:course_detail' course.pk %}">{{ course.title }}</a>
+</nav>
+
+<div class="gc-lesson-layout">
+  <article class="gc-card gc-lesson" data-reveal>
+    <div class="gc-course-meta" style="margin-top:0">
+      <span class="gc-badge">Урок {{ item.number }} из {{ summary.total }}</span>
+      {% if item.is_done %}<span class="gc-badge gc-badge--success">Пройден</span>{% endif %}
+    </div>
+    <h1>{{ lesson.title }}</h1>
+
+    {% if video_embed %}
+      <div class="gc-video">
+        <iframe src="{{ video_embed }}" title="Видео к уроку «{{ lesson.title }}»" allowfullscreen loading="lazy"></iframe>
+      </div>
+    {% elif lesson.video_url %}
+      <p><a class="gc-btn gc-btn--ghost" href="{{ lesson.video_url }}" target="_blank" rel="noopener">Смотреть видео к уроку</a></p>
+    {% endif %}
+
+    <div class="gc-lesson-text">{{ lesson.content|linebreaks }}</div>
+
+    {% if lesson.files.all %}
+      <h2 class="gc-block-title" style="font-size:19px">Материалы урока</h2>
+      <ul class="gc-files">
+        {% for file in lesson.files.all %}
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3v5h5"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/></svg>
+            <a href="{{ file.file.url }}" download>{{ file.name }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <div class="gc-lesson-foot">
+      {% if previous %}
+        <a class="gc-btn gc-btn--ghost" href="{% url 'courses:lesson_detail' previous.pk %}">Предыдущий урок</a>
+      {% else %}<span></span>{% endif %}
+
+      {% if test %}
+        {% if item.is_done %}
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            <span class="gc-badge gc-badge--success">Тест сдан на {{ best.score }}%</span>
+            {% if next_item %}
+              <a class="gc-btn" href="{% url 'courses:lesson_detail' next_item.lesson.pk %}">Следующий урок</a>
+            {% else %}
+              <a class="gc-btn" href="{% url 'courses:course_progress' course.pk %}">Мои результаты</a>
+            {% endif %}
+          </div>
+        {% else %}
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+            {% if best %}<span class="gc-badge gc-badge--muted">Прошлая попытка: {{ best.score }}%</span>{% endif %}
+            <a class="gc-btn" href="{% url 'courses:test_take' test.pk %}">{% if best %}Пройти тест ещё раз{% else %}Пройти тест{% endif %}</a>
+          </div>
+        {% endif %}
+      {% else %}
+        {% if next_item %}
+          <a class="gc-btn" href="{% url 'courses:lesson_detail' next_item.lesson.pk %}">Следующий урок</a>
+        {% endif %}
+      {% endif %}
+    </div>
+  </article>
+
+  <aside class="gc-card gc-lesson-aside" data-reveal>
+    <h2 class="gc-block-title" style="font-size:18px">Программа курса</h2>
+    <ol class="gc-mini">
+      {% for row in track %}
+        <li class="{% if row.lesson.pk == lesson.pk %}is-current{% elif row.is_done %}is-done{% elif row.is_locked %}is-locked{% endif %}">
+          <span class="gc-mini-mark" aria-hidden="true">{% if row.is_done %}✓{% elif row.is_locked %}🔒{% else %}{{ row.number }}{% endif %}</span>
+          {% if row.is_open %}
+            <a href="{% url 'courses:lesson_detail' row.lesson.pk %}">{{ row.lesson.title }}</a>
+          {% else %}
+            <span>{{ row.lesson.title }}</span>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ol>
+    <div class="gc-progress-block">
+      <div class="gc-progress-top">
+        <span class="muted">Прогресс курса</span>
+        <strong>{{ summary.percent }}%</strong>
+      </div>
+      <span class="gc-bar{% if summary.completed %} is-done{% endif %}"><span style="width:{{ summary.percent }}%"></span></span>
+    </div>
+  </aside>
+</div>
+{% endblock %}

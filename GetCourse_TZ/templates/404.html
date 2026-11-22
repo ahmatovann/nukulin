@@ -1,0 +1,8 @@
+{% extends 'base.html' %}
+{% block title %}Страница не найдена{% endblock %}
+{% block content %}
+<section class="gc-card" style="max-width:620px;margin:6vh auto 0;width:100%">
+  {% include 'partials/_empty.html' with title='Страница не найдена' text='Такой страницы нет или она была удалена. Проверьте адрес или вернитесь на главную.' %}
+  <div style="display:flex;justify-content:center;margin-top:6px"><a class="gc-btn" href="{% url 'courses:home' %}">На главную</a></div>
+</section>
+{% endblock %}

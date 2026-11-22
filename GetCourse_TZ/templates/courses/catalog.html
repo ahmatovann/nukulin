@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+{% load ru %}
+{% block title %}Каталог курсов{% endblock %}
+{% block content %}
+<section class="gc-section-head" data-reveal>
+  <div>
+    <span class="gc-eyebrow">Каталог</span>
+    <h1>Курсы школы</h1>
+  </div>
+  <p class="muted">Найдено курсов: {{ courses|length }}</p>
+</section>
+
+<form class="gc-card gc-filters" method="get" action="{% url 'courses:catalog' %}" data-reveal>
+  <div class="gc-field">
+    <label for="id_q">Название курса</label>
+    <input class="gc-input" type="search" id="id_q" name="q" value="{{ query }}" placeholder="Например: Python">
+  </div>
+  <div class="gc-field">
+    <label for="id_category">Категория</label>
+    <select class="gc-input" id="id_category" name="category">
+      <option value="">Все категории</option>
+      {% for category in categories %}
+        <option value="{{ category.pk }}"{% if selected_category == category.pk|stringformat:"s" %} selected{% endif %}>{{ category.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="gc-field">
+    <label for="id_difficulty">Уровень</label>
+    <select class="gc-input" id="id_difficulty" name="difficulty">
+      <option value="">Любой уровень</option>
+      {% for value, label in difficulties %}
+        <option value="{{ value }}"{% if selected_difficulty == value %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div style="display:flex;gap:10px">
+    <button class="gc-btn" type="submit">Найти</button>
+    {% if is_filtered %}<a class="gc-btn gc-btn--ghost" href="{% url 'courses:catalog' %}">Сбросить</a>{% endif %}
+  </div>
+</form>
+
+{% if courses %}
+  <div class="gc-grid">
+    {% for course in courses %}
+      <a class="gc-card gc-course" href="{% url 'courses:course_detail' course.pk %}" data-reveal style="--i:{{ forloop.counter0 }}">
+        <span class="gc-cover">
+          {% if course.cover_image %}
+            <img src="{{ course.cover_image.url }}" alt="">
+          {% else %}
+            <span class="gc-cover-ph" aria-hidden="true">{{ course.title|first|upper }}</span>
+          {% endif %}
+        </span>
+        <span class="gc-course-body">
+          <h3>{{ course.title }}</h3>
+          <span class="muted">{{ course.description|truncatewords:16 }}</span>
+          <span class="gc-course-meta">
+            <span class="gc-badge">{{ course.get_difficulty_display }}</span>
+            <span class="gc-badge gc-badge--muted">{{ course.category.name }}</span>
+            <span class="gc-badge gc-badge--muted">{{ course.lessons_total }} {{ course.lessons_total|plural:"урок,урока,уроков" }}</span>
+          </span>
+        </span>
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="gc-card gc-empty" data-reveal>
+    <h3>Ничего не нашлось</h3>
+    {% if is_filtered %}
+      <p class="muted">По таким условиям курсов нет. Измените название или снимите фильтры.</p>
+      <a class="gc-btn" href="{% url 'courses:catalog' %}">Показать все курсы</a>
+    {% else %}
+      <p class="muted">Опубликованных курсов пока нет. Загляните позже.</p>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

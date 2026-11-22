@@ -1,0 +1,33 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{% if subtitle %}{{ subtitle }} | {% endif %}{{ title }} | GetCourse{% endblock %}
+
+{% block extrastyle %}
+  {{ block.super }}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}?v=11">
+{% endblock %}
+
+{% block branding %}
+<div id="site-name">
+  <a href="{% url 'admin:index' %}">
+    <svg class="gc-admin-gem" width="22" height="30" viewBox="0 0 40 56" aria-hidden="true">
+      <path d="M20 2 L36 22 L20 54 L4 22 Z" fill="#EFE7FA" stroke="#7442B8" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M4 22 H36 M20 2 L14 22 L20 54 L26 22 Z" fill="none" stroke="#7442B8" stroke-width="1.6" stroke-linejoin="round"/>
+      <path d="M20 2 L26 22 L36 22 Z" fill="#D9C8F0"/>
+    </svg>
+    <span>GetCourse</span><small>администрирование</small>
+  </a>
+</div>
+{% endblock %}
+
+{% block userlinks %}
+  <a href="{% url 'admin_statistics' %}">Статистика</a> /
+  <a href="{% url 'accounts:profile' %}">Мой профиль</a> /
+  {{ block.super }}
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
