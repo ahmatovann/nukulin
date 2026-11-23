@@ -716,15 +716,79 @@ select.gc-input { appearance: none; padding-right: 40px; background-image: url("
    -------------------------------------------------------------------------- */
 .gc-feed-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 24px; align-items: start; }
 
-.gc-post { display: flex; flex-direction: column; gap: 10px; }
-.gc-post.is-pinned { box-shadow: inset 0 0 0 1px var(--glass-edge), inset 4px 0 0 var(--primary), 0 1px 2px rgba(30, 27, 38, .04); }
-.gc-pin { display: inline-flex; align-items: center; gap: 6px; align-self: flex-start; font-size: 13px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--primary); }
+/* Метка типа публикации */
+.gc-kind-row { display: flex; flex-wrap: wrap; gap: 7px; align-items: center; }
+.gc-kind {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12.5px; font-weight: 700; line-height: 1;
+  padding: 5px 10px; border-radius: 7px; white-space: nowrap;
+}
+.gc-kind--announcement { background: #EFE7FA; color: #5E3197; }
+.gc-kind--news         { background: #E4EEF9; color: #275E8E; }
+.gc-kind--tip          { background: #FBF0DC; color: #8A5B11; }
+.gc-kind--event        { background: #FAE4EC; color: #96325E; }
+.gc-kind--pinned       { background: transparent; color: var(--muted); box-shadow: inset 0 0 0 1px var(--border); }
+
+/* Фотография публикации и заглушка без фото */
+.gc-photo {
+  display: block; position: relative; overflow: hidden;
+  border-radius: var(--radius-sm); background: #EFE7FA;
+  aspect-ratio: 16 / 9; flex: none;
+}
+.gc-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.gc-photo-ph {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #B28BE6 0%, #5E3197 100%);
+}
+.gc-photo-letter { font-size: 40px; font-weight: 800; color: #fff; opacity: .9; line-height: 1; }
+.gc-photo--large .gc-photo-letter { font-size: 76px; }
+.gc-photo--news  .gc-photo-ph { background: linear-gradient(135deg, #7EA9D8 0%, #275E8E 100%); }
+.gc-photo--tip   .gc-photo-ph { background: linear-gradient(135deg, #E3B869 0%, #8A5B11 100%); }
+.gc-photo--event .gc-photo-ph { background: linear-gradient(135deg, #DE8DB0 0%, #96325E 100%); }
+
+/* Главная публикация ленты */
+.gc-featured {
+  display: flex; flex-direction: column; gap: 0; padding: 0; overflow: hidden;
+  text-decoration: none; color: inherit;
+  transition: box-shadow .2s var(--ease-out), transform .2s var(--ease-out);
+}
+.gc-featured:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 1px var(--primary-border), 0 8px 24px rgba(94, 49, 151, .12); }
+.gc-featured .gc-photo { border-radius: 0; aspect-ratio: 21 / 9; }
+.gc-featured-body { display: flex; flex-direction: column; gap: 10px; padding: 22px 26px 24px; }
+.gc-featured-body h3 { font-size: 25px; line-height: 1.25; margin: 0; }
+.gc-featured-text { font-size: 16px; }
+.gc-featured-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 14px; color: var(--muted); margin-top: 2px; }
+.gc-read { font-weight: 700; color: var(--primary); }
+.gc-featured:hover .gc-read { color: var(--primary-hover); text-decoration: underline; }
+
+/* Обычная публикация: фото слева, текст справа */
+.gc-post {
+  display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 18px;
+  align-items: start; padding: 16px; text-decoration: none; color: inherit;
+  transition: box-shadow .2s var(--ease-out), transform .2s var(--ease-out);
+}
+.gc-post:hover { transform: translateY(-2px); box-shadow: inset 0 0 0 1px var(--primary-border), 0 8px 20px rgba(94, 49, 151, .1); }
+.gc-post-body { display: flex; flex-direction: column; gap: 7px; min-width: 0; padding: 4px 6px 4px 0; }
+.gc-post-body h3 { font-size: 18px; line-height: 1.3; margin: 0; }
+.gc-post-text { font-size: 15px; }
+.gc-post-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+.gc-post-course { padding: 3px 9px; border-radius: 7px; background: var(--primary-light); color: var(--primary-hover); font-weight: 600; }
 .gc-post-date { font-size: 14px; }
-.gc-post-image { width: 100%; border-radius: var(--radius-sm); margin: 4px 0; }
-.gc-post-text { color: var(--muted); }
-.gc-post-text p { margin: 0 0 10px; }
-.gc-post-text p:last-child { margin-bottom: 0; }
-.gc-post .gc-btn { align-self: flex-start; min-height: 42px; }
+
+/* Страница одной публикации */
+.gc-article { display: flex; flex-direction: column; gap: 12px; padding: 32px; }
+.gc-article h1 { margin: 0; }
+.gc-article-photo { width: 100%; border-radius: var(--radius-sm); margin: 8px 0; }
+.gc-article-text { font-size: 17px; line-height: 1.7; max-width: 68ch; color: var(--text); }
+.gc-article-text p { margin: 0 0 1em; }
+.gc-article-text p:last-child { margin-bottom: 0; }
+.gc-article-course {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+  gap: 14px; margin-top: 8px; padding: 18px 20px;
+  border-radius: var(--radius-sm); background: var(--primary-light);
+}
+
 
 .gc-popular { position: sticky; top: 20px; display: flex; flex-direction: column; gap: 6px; }
 .gc-rank { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; }
@@ -853,6 +917,15 @@ select.gc-input { appearance: none; padding-right: 40px; background-image: url("
 
 @media (max-width: 620px) {
   .gc-filters { grid-template-columns: minmax(0, 1fr); }
+  /* На телефоне фотография публикации встаёт над текстом */
+  .gc-post { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 12px; }
+  .gc-post-body { padding: 0 4px 4px; }
+  .gc-featured .gc-photo { aspect-ratio: 16 / 9; }
+  .gc-featured-body { padding: 18px; }
+  .gc-featured-body h3 { font-size: 21px; }
+  .gc-article { padding: 22px 18px; }
+  .gc-article-course { flex-direction: column; align-items: stretch; }
+  .gc-article-course .gc-btn { width: 100%; }
   .gc-course-head-body, .gc-lesson { padding: 22px 18px; }
   .gc-options { padding-left: 0; }
   .gc-enrolled { grid-template-columns: minmax(0, 1fr); }

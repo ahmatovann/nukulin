@@ -30,6 +30,7 @@ urlpatterns = [
     path('_nested_admin/', include('nested_admin.urls')),
     path('admin/', admin.site.urls),
     path('accounts/', include('accounts.urls')),
+    path('', include('feed.urls')),
     path('', include('courses.urls')),
 ]
 

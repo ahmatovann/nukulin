@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}{{ post.title }}{% endblock %}
+{% block content %}
+<nav class="gc-crumbs" aria-label="Навигация">
+  <a href="{% url 'courses:home' %}">Главная</a>
+  <span aria-hidden="true">/</span>
+  <span>Лента</span>
+</nav>
+
+<article class="gc-card gc-article" data-reveal>
+  <div class="gc-kind-row">{% include 'feed/_kind.html' %}</div>
+  <h1>{{ post.title }}</h1>
+  <time class="muted gc-post-date" datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"j E Y" }}</time>
+
+  {% if post.image %}
+    <img class="gc-article-photo" src="{{ post.image.url }}" alt="{{ post.title }}">
+  {% endif %}
+
+  <div class="gc-article-text">{{ post.text|linebreaks }}</div>
+
+  {% if post.course %}
+    <div class="gc-article-course">
+      <div>
+        <small class="muted">Публикация о курсе</small><br>
+        <strong>{{ post.course.title }}</strong>
+      </div>
+      <a class="gc-btn" href="{% url 'courses:course_detail' post.course.pk %}">Открыть курс</a>
+    </div>
+  {% endif %}
+</article>
+
+{% if others %}
+  <section class="gc-block">
+    <h2 class="gc-block-title" data-reveal>Другие публикации</h2>
+    <div class="gc-grid">
+      {% for item in others %}
+        <a class="gc-card gc-course" href="{% url 'feed:post_detail' item.pk %}" data-reveal style="--i:{{ forloop.counter0 }}">
+          {% include 'feed/_photo.html' with post=item %}
+          <span class="gc-course-body">
+            <span class="gc-kind-row">{% include 'feed/_kind.html' with post=item %}</span>
+            <h3>{{ item.title }}</h3>
+            <span class="muted">{{ item.short_text|truncatechars:90 }}</span>
+          </span>
+        </a>
+      {% endfor %}
+    </div>
+  </section>
+{% endif %}
+{% endblock %}

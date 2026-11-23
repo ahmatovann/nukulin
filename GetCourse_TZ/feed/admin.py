@@ -6,15 +6,15 @@ from .models import MAX_PINNED, Post
 
 @admin.register(Post)
 class PostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'course', 'pinned', 'created_at')
-    list_filter = ('pinned', 'created_at')
-    search_fields = ('title', 'text')
+    list_display = ('title', 'kind', 'course', 'has_image', 'pinned', 'created_at')
+    list_filter = ('kind', 'pinned', 'created_at')
+    search_fields = ('title', 'summary', 'text')
     list_editable = ('pinned',)
     date_hierarchy = 'created_at'
     actions = ['pin_posts', 'unpin_posts']
 
     fieldsets = (
-        (None, {'fields': ('title', 'text')}),
+        (None, {'fields': ('kind', 'title', 'summary', 'text')}),
         ('Оформление', {'fields': ('image', 'course')}),
         ('Размещение', {
             'fields': ('pinned',),
@@ -22,6 +22,10 @@ class PostAdmin(admin.ModelAdmin):
                            f'Больше {MAX_PINNED} закрепить нельзя.',
         }),
     )
+
+    @admin.display(description='Фото', boolean=True)
+    def has_image(self, obj):
+        return bool(obj.image)
 
     @admin.action(description='Закрепить вверху ленты')
     def pin_posts(self, request, queryset):

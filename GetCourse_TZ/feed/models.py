@@ -8,9 +8,41 @@ MAX_PINNED = 3
 class Post(models.Model):
     """Публикация ленты. Видна всем, в том числе гостям без входа в систему."""
 
+    ANNOUNCEMENT = 'announcement'
+    NEWS = 'news'
+    TIP = 'tip'
+    EVENT = 'event'
+    KIND_CHOICES = [
+        (ANNOUNCEMENT, 'Анонс'),
+        (NEWS, 'Новость'),
+        (TIP, 'Совет'),
+        (EVENT, 'Событие'),
+    ]
+
     title = models.CharField('Заголовок', max_length=200)
+    kind = models.CharField(
+        'Тип публикации',
+        max_length=20,
+        choices=KIND_CHOICES,
+        default=NEWS,
+        help_text='Показывается цветной меткой в начале публикации.',
+    )
+    summary = models.CharField(
+        'Короткое описание',
+        max_length=300,
+        blank=True,
+        help_text='Одно предложение под заголовком. Если не заполнить, '
+                  'возьмётся начало текста публикации.',
+    )
     text = models.TextField('Текст публикации')
-    image = models.ImageField('Картинка', upload_to='feed/', blank=True, null=True)
+    image = models.ImageField(
+        'Фотография',
+        upload_to='feed/',
+        blank=True,
+        null=True,
+        help_text='Лучше всего подходит широкая картинка, например 1200 на 675 точек. '
+                  'Без неё публикация тоже выглядит аккуратно.',
+    )
     course = models.ForeignKey(
         'courses.Course',
         on_delete=models.SET_NULL,
@@ -35,6 +67,19 @@ class Post(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def short_text(self):
+        """Одно предложение для карточки: своё описание или начало текста."""
+        if self.summary:
+            return self.summary
+        first = self.text.strip().split('\n')[0]
+        return first if len(first) <= 200 else first[:197].rstrip() + '…'
+
+    @property
+    def initial(self):
+        """Первая буква заголовка — для заглушки, когда фотографии нет."""
+        return self.title[:1].upper()
 
     def clean(self):
         # ФТ-28: закреплённых публикаций не больше трёх
