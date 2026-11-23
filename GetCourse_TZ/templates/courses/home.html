@@ -21,7 +21,8 @@
     {% else %}
       <h1>Учитесь по шагам: каждый урок открывается после теста</h1>
       <p class="muted" style="font-size:18px">Зарегистрируйтесь, чтобы записываться на курсы, проходить уроки по порядку и видеть свой прогресс.</p>
-      <div class="gc-hero-actions">
+      <div class="gc-hero-actions gc-hero-actions--arrow">
+        <img class="gc-arrow-sticker" src="{% static 'img/stickers/arrow.png' %}" alt="" loading="lazy">
         <a class="gc-btn" href="{% url 'accounts:register' %}">Зарегистрироваться</a>
         <a class="gc-btn gc-btn--ghost" href="{% url 'courses:catalog' %}">Посмотреть курсы</a>
       </div>
@@ -99,7 +100,8 @@
     </div>
 
     {% if hero_post %}
-      <a class="gc-card gc-featured" href="{% url 'feed:post_detail' hero_post.pk %}" data-reveal data-shine>
+      <a class="gc-card gc-featured{% if hero_post.pinned %} is-pinned{% endif %}" href="{% url 'feed:post_detail' hero_post.pk %}" data-reveal data-shine>
+        {% if hero_post.pinned %}<img class="gc-pin-sticker" src="{% static 'img/stickers/pin.png' %}" alt="" loading="lazy">{% endif %}
         {% include 'feed/_photo.html' with post=hero_post size="large" %}
         <span class="gc-featured-body">
           <span class="gc-kind-row">{% include 'feed/_kind.html' with post=hero_post %}</span>
@@ -114,7 +116,8 @@
     {% endif %}
 
     {% for post in posts %}
-      <a class="gc-card gc-post" href="{% url 'feed:post_detail' post.pk %}" data-reveal style="--i:{{ forloop.counter0 }}">
+      <a class="gc-card gc-post{% if post.pinned %} is-pinned{% endif %}" href="{% url 'feed:post_detail' post.pk %}" data-reveal style="--i:{{ forloop.counter0 }}">
+        {% if post.pinned %}<img class="gc-pin-sticker" src="{% static 'img/stickers/pin.png' %}" alt="" loading="lazy">{% endif %}
         {% include 'feed/_photo.html' with post=post %}
         <span class="gc-post-body">
           <span class="gc-kind-row">{% include 'feed/_kind.html' with post=post %}</span>
@@ -130,7 +133,7 @@
 
     {% if not hero_post %}
       <div class="gc-card gc-empty" data-reveal>
-        <img class="gc-empty-sticker" src="{% static 'img/stickers/news.svg' %}" alt="" loading="lazy">
+        <img class="gc-empty-sticker" src="{% static 'img/stickers/cat.png' %}" alt="" loading="lazy">
         <h3>Публикаций пока нет</h3>
         <p class="muted">Здесь появятся анонсы курсов и новости школы.</p>
         <a class="gc-btn" href="{% url 'courses:catalog' %}">Посмотреть каталог курсов</a>

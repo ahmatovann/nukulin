@@ -794,7 +794,27 @@ select.gc-input { appearance: none; padding-right: 40px; background-image: url("
 }
 .gc-step h3 { margin-top: 10px; padding-right: 64px; }
 .gc-step p { margin-top: 6px; }
-.gc-empty-sticker { width: 96px; height: 96px; margin: 0 auto 6px; display: block; }
+.gc-empty-sticker { width: 118px; height: auto; margin: 0 auto 4px; display: block; }
+
+/* Канцелярская кнопка на закреплённой публикации */
+.gc-featured, .gc-post { position: relative; }
+.gc-pin-sticker {
+  position: absolute; top: -16px; right: 16px; z-index: 2;
+  width: 52px; height: auto; pointer-events: none;
+  filter: drop-shadow(0 4px 7px rgba(30, 27, 38, .3));
+  transform: rotate(9deg);
+}
+.gc-featured .gc-pin-sticker { width: 66px; top: -20px; right: 26px; }
+
+/* Стрелка указывает на кнопку регистрации */
+.gc-hero-actions--arrow { position: relative; }
+.gc-arrow-sticker {
+  position: absolute; left: calc(100% + 4px); top: -48px;
+  width: 58px; height: auto; pointer-events: none;
+  transform: rotate(-26deg);
+}
+/* Если места справа мало, стрелка не показывается, чтобы ничего не наезжало */
+@media (max-width: 1180px) { .gc-arrow-sticker { display: none; } }
 .gc-photo--large .gc-sticker { max-width: 180px; width: 34%; }
 .gc-photo--news  .gc-photo-ph { background: linear-gradient(135deg, #7EA9D8 0%, #275E8E 100%); }
 .gc-photo--tip   .gc-photo-ph { background: linear-gradient(135deg, #E3B869 0%, #8A5B11 100%); }
@@ -975,6 +995,10 @@ select.gc-input { appearance: none; padding-right: 40px; background-image: url("
   .gc-sticker { max-width: 84px; width: 42%; }
   .gc-photo--large .gc-sticker { max-width: 120px; width: 40%; }
   .gc-step-sticker { width: 74px; height: 74px; }
+  .gc-arrow-sticker { display: none; }
+  .gc-pin-sticker { width: 42px; top: -12px; right: 10px; }
+  .gc-featured .gc-pin-sticker { width: 50px; top: -14px; right: 14px; }
+  .gc-empty-sticker { width: 96px; }
   .gc-step h3 { padding-right: 52px; }
   .gc-post-body { padding: 0 4px 4px; }
   .gc-featured .gc-photo { aspect-ratio: 16 / 9; }
