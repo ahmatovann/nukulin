@@ -1,11 +1,13 @@
-{% comment %}
-Фотография публикации. Если её нет, рисуется аккуратная заглушка
-с буквой заголовка — лента не выглядит сломанной без картинок.
+{% load static %}{% comment %}
+Фотография публикации. Если её нет, показывается наклейка по типу публикации
+на цветном фоне — лента не выглядит сломанной без картинок.
 {% endcomment %}
 <span class="gc-photo{% if size %} gc-photo--{{ size }}{% endif %} gc-photo--{{ post.kind }}">
   {% if post.image %}
     <img src="{{ post.image.url }}" alt="{{ post.title }}" loading="lazy">
   {% else %}
-    <span class="gc-photo-ph" aria-hidden="true"><span class="gc-photo-letter">{{ post.initial }}</span></span>
+    <span class="gc-photo-ph" aria-hidden="true">
+      <img class="gc-sticker" src="{% static 'img/stickers/' %}{{ post.kind }}.svg" alt="" loading="lazy">
+    </span>
   {% endif %}
 </span>

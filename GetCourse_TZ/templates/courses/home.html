@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 {% load ru %}
 {% block title %}Главная{% endblock %}
 {% block content %}
@@ -129,6 +130,7 @@
 
     {% if not hero_post %}
       <div class="gc-card gc-empty" data-reveal>
+        <img class="gc-empty-sticker" src="{% static 'img/stickers/news.svg' %}" alt="" loading="lazy">
         <h3>Публикаций пока нет</h3>
         <p class="muted">Здесь появятся анонсы курсов и новости школы.</p>
         <a class="gc-btn" href="{% url 'courses:catalog' %}">Посмотреть каталог курсов</a>
@@ -163,9 +165,24 @@
 <section style="display:flex;flex-direction:column;gap:18px">
   <h2 data-reveal>Как это работает</h2>
   <div class="gc-steps">
-    <div class="gc-card" data-reveal data-shine style="--i:0"><div class="gc-step-num">1</div><h3>Выберите курс</h3><p class="muted" style="margin-top:6px">По названию, категории или уровню сложности.</p></div>
-    <div class="gc-card" data-reveal data-shine style="--i:1"><div class="gc-step-num">2</div><h3>Проходите уроки по порядку</h3><p class="muted" style="margin-top:6px">Текст, видео и материалы. Следующий урок откроется после теста.</p></div>
-    <div class="gc-card" data-reveal data-shine style="--i:2"><div class="gc-step-num">3</div><h3>Сдавайте тесты</h3><p class="muted" style="margin-top:6px">Проходной балл — 70%. Пересдавать можно сколько угодно, засчитывается лучший результат.</p></div>
+    <div class="gc-card gc-step" data-reveal data-shine style="--i:0">
+      <img class="gc-step-sticker" src="{% static 'img/stickers/book.svg' %}" alt="" loading="lazy">
+      <div class="gc-step-num">1</div>
+      <h3>Выберите курс</h3>
+      <p class="muted">По названию, категории или уровню сложности.</p>
+    </div>
+    <div class="gc-card gc-step" data-reveal data-shine style="--i:1">
+      <img class="gc-step-sticker" src="{% static 'img/stickers/pencil.svg' %}" alt="" loading="lazy">
+      <div class="gc-step-num">2</div>
+      <h3>Проходите уроки по порядку</h3>
+      <p class="muted">Текст, видео и материалы. Следующий урок откроется после теста.</p>
+    </div>
+    <div class="gc-card gc-step" data-reveal data-shine style="--i:2">
+      <img class="gc-step-sticker" src="{% static 'img/stickers/rocket.svg' %}" alt="" loading="lazy">
+      <div class="gc-step-num">3</div>
+      <h3>Сдавайте тесты</h3>
+      <p class="muted">Проходной балл — 70%. Пересдавать можно сколько угодно, засчитывается лучший результат.</p>
+    </div>
   </div>
 </section>
 {% endif %}
