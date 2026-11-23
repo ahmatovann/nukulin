@@ -17,11 +17,16 @@ FEED_LIMIT = 10
 
 def home(request):
     """Главная: лента анонсов и популярные курсы недели (ФТ-26, ФТ-27, UC-1)."""
-    # Первая публикация показывается крупно, остальные — карточками
+    # Первая публикация показывается крупно, остальные — карточками разного
+    # размера: две узкие рядом, затем одна во всю ширину, и так по кругу.
     posts = list(Post.objects.select_related('course')[:FEED_LIMIT])
+    rest = posts[1:]
+    for index, post in enumerate(rest):
+        post.layout = 'wide' if index % 3 == 2 else 'tall'
+
     context = {
         'hero_post': posts[0] if posts else None,
-        'posts': posts[1:],
+        'posts': rest,
         'posts_total': len(posts),
         'popular_courses': popular_courses_of_week(),
     }

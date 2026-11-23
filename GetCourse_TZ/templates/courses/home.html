@@ -115,21 +115,23 @@
       </a>
     {% endif %}
 
-    {% for post in posts %}
-      <a class="gc-card gc-post{% if post.pinned %} is-pinned{% endif %}" href="{% url 'feed:post_detail' post.pk %}" data-reveal style="--i:{{ forloop.counter0 }}">
-        {% if post.pinned %}<img class="gc-pin-sticker" src="{% static 'img/stickers/pin.png' %}" alt="" loading="lazy">{% endif %}
-        {% include 'feed/_photo.html' with post=post %}
-        <span class="gc-post-body">
-          <span class="gc-kind-row">{% include 'feed/_kind.html' with post=post %}</span>
-          <h3>{{ post.title }}</h3>
-          <span class="muted gc-post-text">{{ post.short_text }}</span>
-          <span class="gc-post-foot">
-            <time datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"j E Y" }}</time>
-            {% if post.course %}<span class="gc-post-course">{{ post.course.title }}</span>{% endif %}
+    <div class="gc-feed-grid">
+      {% for post in posts %}
+        <a class="gc-card gc-post gc-post--{{ post.layout }}{% if post.pinned %} is-pinned{% endif %}" href="{% url 'feed:post_detail' post.pk %}" data-reveal style="--i:{{ forloop.counter0 }}">
+          {% if post.pinned %}<img class="gc-pin-sticker" src="{% static 'img/stickers/pin.png' %}" alt="" loading="lazy">{% endif %}
+          {% include 'feed/_photo.html' with post=post %}
+          <span class="gc-post-body">
+            <span class="gc-kind-row">{% include 'feed/_kind.html' with post=post %}</span>
+            <h3>{{ post.title }}</h3>
+            <span class="muted gc-post-text">{{ post.short_text }}</span>
+            <span class="gc-post-foot">
+              <time datetime="{{ post.created_at|date:'Y-m-d' }}">{{ post.created_at|date:"j E Y" }}</time>
+              {% if post.course %}<span class="gc-post-course">{{ post.course.title }}</span>{% endif %}
+            </span>
           </span>
-        </span>
-      </a>
-    {% endfor %}
+        </a>
+      {% endfor %}
+    </div>
 
     {% if not hero_post %}
       <div class="gc-card gc-empty" data-reveal>
