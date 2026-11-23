@@ -14,8 +14,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{% static 'css/getcourse.css' %}?v=11">
-  <script src="{% static 'js/getcourse.js' %}?v=11" defer></script>
+  <link rel="stylesheet" href="{% static 'css/getcourse.css' %}?v=12">
+  <script src="{% static 'js/getcourse.js' %}?v=12" defer></script>
 </head>
 <body>
 {% with url_name=request.resolver_match.url_name %}
@@ -44,7 +44,7 @@
 <header class="gc-topnav">
   <div class="gc-topnav-inner">
     <a class="gc-topnav-brand" href="{% url 'courses:home' %}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg>
       GetCourse
     </a>
 
