@@ -8,6 +8,9 @@ MAX_PINNED = 3
 class Post(models.Model):
     """Публикация ленты. Видна всем, в том числе гостям без входа в систему."""
 
+    COVER = 'cover'
+    CONTAIN = 'contain'
+
     ANNOUNCEMENT = 'announcement'
     NEWS = 'news'
     TIP = 'tip'
@@ -42,6 +45,15 @@ class Post(models.Model):
         null=True,
         help_text='Лучше всего подходит широкая картинка, например 1200 на 675 точек. '
                   'Без неё публикация тоже выглядит аккуратно.',
+    )
+    image_fit = models.CharField(
+        'Как показывать картинку',
+        max_length=10,
+        choices=[
+            (COVER, 'Заполнить рамку — подходит для обычных фотографий'),
+            (CONTAIN, 'Вписать целиком — для коллажей и картинок без фона'),
+        ],
+        default=COVER,
     )
     course = models.ForeignKey(
         'courses.Course',

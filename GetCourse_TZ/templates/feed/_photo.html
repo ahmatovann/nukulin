@@ -2,7 +2,7 @@
 Фотография публикации. Если её нет, показывается наклейка по типу публикации
 на цветном фоне — лента не выглядит сломанной без картинок.
 {% endcomment %}
-<span class="gc-photo{% if size %} gc-photo--{{ size }}{% endif %} gc-photo--{{ post.kind }}">
+<span class="gc-photo{% if size %} gc-photo--{{ size }}{% endif %} gc-photo--{{ post.kind }}{% if post.image and post.image_fit == 'contain' %} gc-photo--contain{% endif %}">
   {% if post.image %}
     <img src="{{ post.image.url }}" alt="{{ post.title }}" loading="lazy">
   {% else %}

@@ -15,7 +15,7 @@ class PostAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (None, {'fields': ('kind', 'title', 'summary', 'text')}),
-        ('Оформление', {'fields': ('image', 'course')}),
+        ('Оформление', {'fields': ('image', 'image_fit', 'course')}),
         ('Размещение', {
             'fields': ('pinned',),
             'description': f'Закреплённые публикации показываются в начале ленты. '

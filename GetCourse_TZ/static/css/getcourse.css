@@ -779,6 +779,11 @@ select.gc-input { appearance: none; padding-right: 40px; background-image: url("
   aspect-ratio: 16 / 9; flex: none;
 }
 .gc-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* Коллажи и картинки без фона показываем целиком, на мягком светлом поле */
+.gc-photo--contain { background: linear-gradient(140deg, #F6F2FC 0%, #EDE6F7 100%); }
+.gc-photo--contain img { object-fit: contain; padding: 10px; }
+.gc-photo--large.gc-photo--contain img { padding: 18px; }
 .gc-photo-ph {
   position: absolute; inset: 0;
   display: flex; align-items: center; justify-content: center;

@@ -43,7 +43,8 @@ COURSES = [
 
 
 # Публикации ленты.
-# Поля: заголовок, тип, короткое описание, текст, закрепить, курс, имя файла фотографии.
+# Поля: заголовок, тип, короткое описание, текст, закрепить, курс,
+# имя файла фотографии и способ показа (cover — заполнить, contain — вписать целиком).
 # Фотографии кладутся в папку static/img/demo/ — если файла нет, рисуется заглушка.
 POSTS = [
     (
@@ -56,7 +57,7 @@ POSTS = [
         'список остальных материалов пришлём после записи.\n'
         'Занятия идут в своём темпе: уроки открываются по очереди, после каждого — '
         'короткое задание на проверку.',
-        True, None, 'feed-moda.jpg',
+        True, None, 'feed-moda.jpg', 'cover',
     ),
     (
         'Как устроено обучение в школе',
@@ -69,7 +70,7 @@ POSTS = [
         'результат — ошибиться не страшно.\n'
         'Свой прогресс по каждому курсу видно в разделе «Мои курсы»: сколько уроков '
         'пройдено, сколько осталось и какой процент курса позади.',
-        True, None, 'feed-obuchenie.jpg',
+        True, None, 'feed-obuchenie.png', 'contain',
     ),
     (
         'Новый курс: архитектурный скетчинг',
@@ -80,7 +81,7 @@ POSTS = [
         'объяснить рисунком, чем словами.\n'
         'Разберём перспективу, свет и тень, фактуры материалов, работу линером и '
         'маркерами. Никакой специальной подготовки не требуется.',
-        False, None, 'feed-arhitektura.jpg',
+        False, None, 'feed-arhitektura.jpg', 'cover',
     ),
     (
         'Группа «Python с нуля» стартует в понедельник',
@@ -90,7 +91,7 @@ POSTS = [
         'полных новичков: начинаем с первой программы и доходим до списков и словарей.\n'
         'Записаться можно прямо сейчас — место закрепляется автоматически, и первый '
         'урок открывается сразу после записи.',
-        False, 'Python с нуля', 'feed-python.jpg',
+        False, 'Python с нуля', 'feed-python.jpg', 'cover',
     ),
     (
         'Три совета, как не бросить курс на середине',
@@ -102,7 +103,7 @@ POSTS = [
         'действительно ли тема понята или только кажется понятной.\n'
         'Третье: возвращайтесь к прошлым урокам, если что-то забылось. Пройденные уроки '
         'остаются открытыми навсегда.',
-        False, None, 'feed-sovety.jpg',
+        False, None, 'feed-sovety.png', 'contain',
     ),
     (
         'Занимайтесь с телефона',
@@ -112,7 +113,7 @@ POSTS = [
         'открываются с телефона так же, как с компьютера — ничего не уезжает и не '
         'приходится увеличивать текст пальцами.\n'
         'Прогресс общий: начали урок на компьютере, продолжили в транспорте с телефона.',
-        False, None, 'feed-telefon.jpg',
+        False, None, 'feed-telefon.jpg', 'contain',
     ),
 ]
 
@@ -280,12 +281,12 @@ class Command(BaseCommand):
         created = 0
 
         now = timezone.now()
-        for index, (title, kind, summary, text, pinned, course_title, photo) in enumerate(POSTS):
+        for index, (title, kind, summary, text, pinned, course_title, photo, fit) in enumerate(POSTS):
             if Post.objects.filter(title=title).exists():
                 continue
             post = Post.objects.create(
                 title=title, kind=kind, summary=summary, text=text,
-                pinned=pinned, course=by_title.get(course_title),
+                pinned=pinned, course=by_title.get(course_title), image_fit=fit,
             )
             # Если фотография положена в static/img/demo/, прикрепляем её к публикации
             source = photo_dir / photo
