@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load ru %}
 {% block title %}Результат теста{% endblock %}
 {% block content %}
 <nav class="gc-crumbs" aria-label="Навигация">
@@ -11,7 +12,12 @@
   <div class="gc-result-score" aria-hidden="true">{{ attempt.score }}<small>%</small></div>
   <div class="gc-result-body">
     <h1>{% if attempt.passed %}Тест сдан{% else %}Тест не сдан{% endif %}</h1>
-    <p class="muted">Правильных ответов: {{ correct_count }} из {{ total_count }}. Проходной балл — {{ attempt.test.pass_score }}%.</p>
+    <p class="muted">
+      Правильных ответов: {{ correct_count }} из {{ total_count }}.
+      {% if wrong_count %}С ошибкой — {{ wrong_count }} {{ wrong_count|plural:"вопрос,вопроса,вопросов" }}.{% endif %}
+      Проходной балл — {{ attempt.test.pass_score }}%.
+    </p>
+
     {% if attempt.passed %}
       <div class="gc-hero-actions">
         {% if next_item %}
@@ -24,8 +30,8 @@
     {% else %}
       <p class="muted">Количество попыток не ограничено, засчитывается лучший результат.</p>
       <div class="gc-hero-actions">
-        <a class="gc-btn" href="{% url 'courses:test_take' attempt.test.pk %}">Пройти ещё раз</a>
-        <a class="gc-btn gc-btn--ghost" href="{% url 'courses:lesson_detail' lesson.pk %}">Повторить урок</a>
+        <a class="gc-btn" href="{% url 'courses:lesson_detail' lesson.pk %}">Повторить урок</a>
+        <a class="gc-btn gc-btn--ghost" href="{% url 'courses:test_take' attempt.test.pk %}">Пройти ещё раз</a>
       </div>
     {% endif %}
   </div>
@@ -34,33 +40,15 @@
 {% if course_completed %}
   <section class="gc-card gc-alert gc-alert--success" data-reveal style="padding:20px 22px">
     <strong style="font-size:18px">Поздравляем, курс пройден!</strong>
-    <p style="margin-top:4px">Вы сдали тесты всех уроков курса «{{ course.title }}».</p>
+    <p style="margin:4px 0 0">Вы сдали тесты всех уроков курса «{{ course.title }}». Расскажите в отзыве, как вам курс.</p>
   </section>
 {% endif %}
 
-<section class="gc-block">
-  <h2 class="gc-block-title" data-reveal>Разбор ответов</h2>
-  {% for answer in answers %}
-    <div class="gc-card gc-question" data-reveal style="--i:{{ forloop.counter0 }}">
-      <div class="gc-question-head">
-        <span class="gc-question-num{% if answer.is_correct %} is-right{% else %} is-wrong{% endif %}" aria-hidden="true">{% if answer.is_correct %}✓{% else %}✕{% endif %}</span>
-        <div>
-          <p class="gc-question-text">{{ answer.question.text }}</p>
-          <small class="{% if answer.is_correct %}muted{% else %}gc-wrong-note{% endif %}">{% if answer.is_correct %}Отвечено верно{% else %}Отвечено неверно{% endif %}</small>
-        </div>
-      </div>
-      <ul class="gc-options">
-        {% for option in answer.question.answers.all %}
-          <li>
-            <div class="gc-option is-static{% if option.is_correct %} is-correct{% elif option in answer.selected.all %} is-wrong{% endif %}">
-              <span>{{ option.text }}</span>
-              {% if option.is_correct %}<em class="gc-option-note">правильный ответ</em>
-              {% elif option in answer.selected.all %}<em class="gc-option-note">ваш выбор</em>{% endif %}
-            </div>
-          </li>
-        {% endfor %}
-      </ul>
-    </div>
-  {% endfor %}
+<section class="gc-card gc-note" data-reveal>
+  <h2 class="gc-block-title" style="font-size:18px">Почему не показаны правильные ответы</h2>
+  <p class="muted">
+    Так тест остаётся проверкой знаний, а не памяти. Если не уверены в теме —
+    вернитесь к уроку и попробуйте снова: попытки не ограничены, в зачёт идёт лучшая.
+  </p>
 </section>
 {% endblock %}

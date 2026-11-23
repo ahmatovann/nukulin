@@ -6,6 +6,8 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from .models import (
+    Comment,
+    Review,
     Answer,
     Category,
     Course,
@@ -361,3 +363,48 @@ class TestAttemptAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+
+@admin.register(Comment)
+class CommentAdmin(admin.ModelAdmin):
+    """Модерация комментариев к урокам (ФТ-30)."""
+
+    list_display = ('short_text', 'user', 'lesson', 'course_title', 'created_at', 'is_hidden')
+    list_filter = ('is_hidden', 'created_at', 'lesson__course')
+    search_fields = ('text', 'user__email', 'user__first_name', 'user__last_name', 'lesson__title')
+    list_editable = ('is_hidden',)
+    readonly_fields = ('created_at',)
+    actions = ['hide_comments', 'show_comments']
+
+    @admin.display(description='Комментарий')
+    def short_text(self, obj):
+        return obj.text[:70]
+
+    @admin.display(description='Курс')
+    def course_title(self, obj):
+        return obj.lesson.course.title
+
+    @admin.action(description='Скрыть выбранные комментарии')
+    def hide_comments(self, request, queryset):
+        count = queryset.update(is_hidden=True)
+        self.message_user(request, f'Скрыто комментариев: {count}.')
+
+    @admin.action(description='Показать выбранные комментарии')
+    def show_comments(self, request, queryset):
+        count = queryset.update(is_hidden=False)
+        self.message_user(request, f'Показано комментариев: {count}.')
+
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    """Отзывы о курсах (ФТ-31)."""
+
+    list_display = ('course', 'user', 'rating', 'short_text', 'created_at', 'is_hidden')
+    list_filter = ('rating', 'is_hidden', 'course')
+    search_fields = ('text', 'user__email', 'course__title')
+    list_editable = ('is_hidden',)
+    readonly_fields = ('created_at',)
+
+    @admin.display(description='Отзыв')
+    def short_text(self, obj):
+        return obj.text[:70] if obj.text else '—'

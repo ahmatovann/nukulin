@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load ru %}
 {% block title %}{{ lesson.title }}{% endblock %}
 {% block content %}
 <nav class="gc-crumbs" aria-label="Навигация">
@@ -8,63 +9,175 @@
 </nav>
 
 <div class="gc-lesson-layout">
-  <article class="gc-card gc-lesson" data-reveal>
-    <div class="gc-course-meta" style="margin-top:0">
-      <span class="gc-badge">Урок {{ item.number }} из {{ summary.total }}</span>
-      {% if item.is_done %}<span class="gc-badge gc-badge--success">Пройден</span>{% endif %}
-    </div>
-    <h1>{{ lesson.title }}</h1>
-
-    {% if video_embed %}
-      <div class="gc-video">
-        <iframe src="{{ video_embed }}" title="Видео к уроку «{{ lesson.title }}»" allowfullscreen loading="lazy"></iframe>
-      </div>
-    {% elif lesson.video_url %}
-      <p><a class="gc-btn gc-btn--ghost" href="{{ lesson.video_url }}" target="_blank" rel="noopener">Смотреть видео к уроку</a></p>
-    {% endif %}
-
-    <div class="gc-lesson-text">{{ lesson.content|linebreaks }}</div>
-
-    {% if lesson.files.all %}
-      <h2 class="gc-block-title" style="font-size:19px">Материалы урока</h2>
-      <ul class="gc-files">
-        {% for file in lesson.files.all %}
-          <li>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3v5h5"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/></svg>
-            <a href="{{ file.file.url }}" download>{{ file.name }}</a>
-          </li>
+  <div class="gc-lesson-column">
+    <article class="gc-card gc-lesson" data-reveal>
+      <div class="gc-course-meta" style="margin-top:0">
+        <span class="gc-badge">Урок {{ item.number }} из {{ summary.total }}</span>
+        {% if item.is_done %}<span class="gc-badge gc-badge--success">Пройден</span>{% endif %}
+        {% for kind in lesson.material_kinds %}
+          <span class="gc-badge gc-badge--muted">{{ kind }}</span>
         {% endfor %}
-      </ul>
-    {% endif %}
+      </div>
+      <h1>{{ lesson.title }}</h1>
 
-    <div class="gc-lesson-foot">
-      {% if previous %}
-        <a class="gc-btn gc-btn--ghost" href="{% url 'courses:lesson_detail' previous.pk %}">Предыдущий урок</a>
-      {% else %}<span></span>{% endif %}
+      {% if video_embed %}
+        <h2 class="gc-material-title">Видеоурок</h2>
+        <div class="gc-video">
+          <iframe src="{{ video_embed }}" title="Видео к уроку «{{ lesson.title }}»" allowfullscreen loading="lazy"></iframe>
+        </div>
+      {% elif lesson.video_url %}
+        <p><a class="gc-btn gc-btn--ghost" href="{{ lesson.video_url }}" target="_blank" rel="noopener">Смотреть видео к уроку</a></p>
+      {% endif %}
 
-      {% if test %}
-        {% if item.is_done %}
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-            <span class="gc-badge gc-badge--success">Тест сдан на {{ best.score }}%</span>
-            {% if next_item %}
-              <a class="gc-btn" href="{% url 'courses:lesson_detail' next_item.lesson.pk %}">Следующий урок</a>
-            {% else %}
-              <a class="gc-btn" href="{% url 'courses:course_progress' course.pk %}">Мои результаты</a>
-            {% endif %}
+      {% if lesson.audio_url %}
+        <h2 class="gc-material-title">Аудио</h2>
+        {% if audio_embed %}
+          <div class="gc-video gc-video--audio">
+            <iframe src="{{ audio_embed }}" title="Аудио к уроку «{{ lesson.title }}»" allowfullscreen loading="lazy"></iframe>
           </div>
         {% else %}
-          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
-            {% if best %}<span class="gc-badge gc-badge--muted">Прошлая попытка: {{ best.score }}%</span>{% endif %}
-            <a class="gc-btn" href="{% url 'courses:test_take' test.pk %}">{% if best %}Пройти тест ещё раз{% else %}Пройти тест{% endif %}</a>
-          </div>
-        {% endif %}
-      {% else %}
-        {% if next_item %}
-          <a class="gc-btn" href="{% url 'courses:lesson_detail' next_item.lesson.pk %}">Следующий урок</a>
+          <audio class="gc-audio" controls preload="none" src="{{ lesson.audio_url }}">
+            Ваш браузер не умеет проигрывать аудио.
+            <a href="{{ lesson.audio_url }}">Скачать запись</a>
+          </audio>
         {% endif %}
       {% endif %}
-    </div>
-  </article>
+
+      {% if lesson.has_presentation %}
+        <h2 class="gc-material-title">Презентация</h2>
+        {% if presentation_embed %}
+          <div class="gc-video gc-video--slides">
+            <iframe src="{{ presentation_embed }}" title="Презентация к уроку" allowfullscreen loading="lazy"></iframe>
+          </div>
+        {% elif lesson.presentation_is_pdf %}
+          <iframe class="gc-pdf" src="{{ lesson.presentation_file.url }}#view=FitH"
+                  title="Презентация к уроку «{{ lesson.title }}»" loading="lazy"></iframe>
+          <p class="muted gc-pdf-note">Если презентация не открылась прямо на странице — скачайте её файлом.</p>
+          <p><a class="gc-btn gc-btn--ghost" href="{{ lesson.presentation_file.url }}" download>Скачать презентацию</a></p>
+        {% elif lesson.presentation_file %}
+          <p><a class="gc-btn gc-btn--ghost" href="{{ lesson.presentation_file.url }}" download>Скачать презентацию</a></p>
+        {% else %}
+          <p><a class="gc-btn gc-btn--ghost" href="{{ lesson.presentation_url }}" target="_blank" rel="noopener">Открыть презентацию</a></p>
+        {% endif %}
+      {% endif %}
+
+      {% if lesson.content.strip %}
+        <h2 class="gc-material-title">Материал урока</h2>
+        <div class="gc-lesson-text">{{ lesson.content|linebreaks }}</div>
+      {% endif %}
+
+      {% if lesson.files.all %}
+        <h2 class="gc-material-title">Материалы для скачивания</h2>
+        <ul class="gc-files">
+          {% for file in lesson.files.all %}
+            <li>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3v5h5"/><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/></svg>
+              <a href="{{ file.file.url }}" download>{{ file.name }}</a>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      <div class="gc-lesson-foot">
+        {% if previous %}
+          <a class="gc-btn gc-btn--ghost" href="{% url 'courses:lesson_detail' previous.pk %}">Предыдущий урок</a>
+        {% else %}<span></span>{% endif %}
+
+        {% if test %}
+          {% if item.is_done %}
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+              <span class="gc-badge gc-badge--success">Тест сдан на {{ best.score }}%</span>
+              {% if next_item %}
+                <a class="gc-btn" href="{% url 'courses:lesson_detail' next_item.lesson.pk %}">Следующий урок</a>
+              {% else %}
+                <a class="gc-btn" href="{% url 'courses:course_progress' course.pk %}">Мои результаты</a>
+              {% endif %}
+            </div>
+          {% else %}
+            <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+              {% if best %}<span class="gc-badge gc-badge--muted">Прошлая попытка: {{ best.score }}%</span>{% endif %}
+              <a class="gc-btn" href="{% url 'courses:test_take' test.pk %}">{% if best %}Пройти тест ещё раз{% else %}Пройти тест{% endif %}</a>
+            </div>
+          {% endif %}
+        {% else %}
+          {% if next_item %}
+            <a class="gc-btn" href="{% url 'courses:lesson_detail' next_item.lesson.pk %}">Следующий урок</a>
+          {% endif %}
+        {% endif %}
+      </div>
+    </article>
+
+    {# --- Обсуждение урока (ФТ-30) --- #}
+    <section class="gc-card gc-comments" id="comments" data-reveal>
+      <h2 class="gc-block-title">
+        Обсуждение
+        {% if comments_total %}<span class="gc-count">{{ comments_total }}</span>{% endif %}
+      </h2>
+      <p class="muted" style="font-size:15px;margin-top:-4px">
+        Спросите о непонятном или подскажите тем, кто проходит урок после вас.
+      </p>
+
+      <form class="gc-comment-form" method="post" action="#comments">
+        {% csrf_token %}
+        {% if comment_form.text.errors %}
+          <ul class="gc-field-errors">
+            {% for error in comment_form.text.errors %}<li>{{ error }}</li>{% endfor %}
+          </ul>
+        {% endif %}
+        {{ comment_form.text }}
+        <button class="gc-btn" type="submit">Отправить</button>
+      </form>
+
+      {% if comments %}
+        <ul class="gc-comment-list">
+          {% for comment in comments %}
+            <li class="gc-comment" id="comment-{{ comment.pk }}">
+              <span class="gc-comment-avatar" aria-hidden="true">{{ comment.user.first_name|slice:":1"|upper }}{{ comment.user.last_name|slice:":1"|upper }}</span>
+              <div class="gc-comment-body">
+                <div class="gc-comment-head">
+                  <strong>{{ comment.user.first_name }} {{ comment.user.last_name|slice:":1" }}.</strong>
+                  <time class="muted" datetime="{{ comment.created_at|date:'Y-m-d' }}">{{ comment.created_at|date:"j E Y, H:i" }}</time>
+                </div>
+                <p>{{ comment.text|linebreaksbr }}</p>
+
+                {% if comment.replies.all %}
+                  <ul class="gc-comment-replies">
+                    {% for reply in comment.replies.all %}
+                      {% if not reply.is_hidden %}
+                        <li class="gc-comment" id="comment-{{ reply.pk }}">
+                          <span class="gc-comment-avatar" aria-hidden="true">{{ reply.user.first_name|slice:":1"|upper }}{{ reply.user.last_name|slice:":1"|upper }}</span>
+                          <div class="gc-comment-body">
+                            <div class="gc-comment-head">
+                              <strong>{{ reply.user.first_name }} {{ reply.user.last_name|slice:":1" }}.</strong>
+                              <time class="muted" datetime="{{ reply.created_at|date:'Y-m-d' }}">{{ reply.created_at|date:"j E Y, H:i" }}</time>
+                            </div>
+                            <p>{{ reply.text|linebreaksbr }}</p>
+                          </div>
+                        </li>
+                      {% endif %}
+                    {% endfor %}
+                  </ul>
+                {% endif %}
+
+                <details class="gc-reply">
+                  <summary>Ответить</summary>
+                  <form method="post" action="#comment-{{ comment.pk }}">
+                    {% csrf_token %}
+                    <input type="hidden" name="parent" value="{{ comment.pk }}">
+                    <textarea class="gc-input" name="text" rows="2" required
+                              placeholder="Ответ для {{ comment.user.first_name }}"></textarea>
+                    <button class="gc-btn gc-btn--ghost" type="submit">Отправить ответ</button>
+                  </form>
+                </details>
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted gc-comment-empty">Пока никто не написал — ваш комментарий будет первым.</p>
+      {% endif %}
+    </section>
+  </div>
 
   <aside class="gc-card gc-lesson-aside" data-reveal>
     <h2 class="gc-block-title" style="font-size:18px">Программа курса</h2>

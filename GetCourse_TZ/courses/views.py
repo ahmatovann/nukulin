@@ -9,7 +9,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from feed.models import Post
 from feed.services import popular_courses_of_week
 
-from .models import Answer, AttemptAnswer, Category, Course, Enrollment, Lesson, Test, TestAttempt
+from .forms import CommentForm, ReviewForm
+from .models import (
+    Answer, AttemptAnswer, Category, Comment, Course, Enrollment, Lesson, Review,
+    Test, TestAttempt,
+)
 from .progress import build_track, course_progress, lesson_state, track_summary
 
 FEED_LIMIT = 10
@@ -57,7 +61,7 @@ def catalog(request):
         Course.objects
         .filter(status='published')
         .select_related('category')
-        .prefetch_related('lessons')
+        .prefetch_related('lessons', 'reviews')
         .annotate(lessons_total=Count('lessons', distinct=True))
     )
 
@@ -119,6 +123,35 @@ def course_detail(request, pk):
         if line.strip(' -–•\t')
     ]
 
+    # Отзывы о курсе (ФТ-31). Оставить отзыв может только записанный пользователь.
+    my_review = None
+    if enrollment:
+        my_review = Review.objects.filter(user=request.user, course=course).first()
+
+    review_form = None
+    if enrollment:
+        review_form = ReviewForm(instance=my_review)
+        if request.method == 'POST' and 'save_review' in request.POST:
+            review_form = ReviewForm(request.POST, instance=my_review)
+            if review_form.is_valid():
+                review = review_form.save(commit=False)
+                review.course = course
+                review.user = request.user
+                review.save()
+                messages.success(
+                    request, 'Отзыв сохранён. Спасибо, он поможет другим выбрать курс.',
+                )
+                return redirect(f"{request.path}#reviews")
+
+    # Свой отзыв показываем первым, чтобы пользователь сразу видел, что он опубликован.
+    reviews = list(
+        course.reviews
+        .filter(is_hidden=False)
+        .select_related('user')
+    )
+    if request.user.is_authenticated:
+        reviews.sort(key=lambda item: item.user_id != request.user.pk)
+
     return render(request, 'courses/course_detail.html', {
         'course': course,
         'enrollment': enrollment,
@@ -126,6 +159,11 @@ def course_detail(request, pk):
         'summary': summary,
         'outcomes': outcomes,
         'students_count': course.enrollments.count(),
+        'reviews': reviews,
+        'my_review': my_review,
+        'review_form': review_form,
+        'rating_average': course.rating_average,
+        'rating_count': course.rating_count,
     })
 
 
@@ -266,6 +304,30 @@ def lesson_detail(request, pk):
     if test:
         best = test.attempts.filter(user=request.user).order_by('-score', '-created_at').first()
 
+    # Комментарий к уроку (ФТ-30)
+    comment_form = CommentForm()
+    if request.method == 'POST':
+        comment_form = CommentForm(request.POST)
+        if comment_form.is_valid():
+            comment = comment_form.save(commit=False)
+            comment.lesson = lesson
+            comment.user = request.user
+            parent_id = request.POST.get('parent')
+            if parent_id and parent_id.isdigit():
+                comment.parent = Comment.objects.filter(
+                    pk=int(parent_id), lesson=lesson,
+                ).first()
+            comment.save()
+            messages.success(request, 'Комментарий добавлен.')
+            return redirect(f"{request.path}#comment-{comment.pk}")
+
+    comments = (
+        lesson.comments
+        .filter(is_hidden=False, parent__isnull=True)
+        .select_related('user')
+        .prefetch_related('replies__user')
+    )
+
     return render(request, 'courses/lesson_detail.html', {
         'course': course,
         'lesson': lesson,
@@ -278,7 +340,29 @@ def lesson_detail(request, pk):
         'test': test,
         'best': best,
         'video_embed': youtube_embed(lesson.video_url),
+        'audio_embed': youtube_embed(lesson.audio_url),
+        'presentation_embed': presentation_embed(lesson.presentation_url),
+        'comments': comments,
+        'comments_total': lesson.comments.filter(is_hidden=False).count(),
+        'comment_form': comment_form,
     })
+
+
+def presentation_embed(url):
+    """Превращает ссылку на презентацию во встраиваемую (ФТ-29)."""
+    if not url:
+        return ''
+    url = url.strip()
+    if '/embed' in url or 'embed?' in url:
+        return url
+    if 'docs.google.com/presentation' in url:
+        # .../edit или .../pub превращаем в .../embed
+        base = url.split('/edit')[0].split('/pub')[0].split('/view')[0]
+        return f'{base}/embed?start=false&loop=false'
+    if 'canva.com/design/' in url:
+        base = url.split('/view')[0].split('/edit')[0]
+        return f'{base}/view?embed'
+    return ''
 
 
 # ---------------------------------------------------------------------------
@@ -377,11 +461,9 @@ def test_result(request, pk):
     lesson = attempt.test.lesson
     course = lesson.course
 
-    answers = list(
-        attempt.answers
-        .select_related('question')
-        .prefetch_related('question__answers', 'selected')
-    )
+    # Разбор ответов не показываем: иначе можно было бы сдать наугад,
+    # посмотреть правильные варианты и сразу пересдать на 100% (ФТ-13).
+    answers = attempt.answers.all()
     correct_count = sum(1 for answer in answers if answer.is_correct)
 
     state = lesson_state(request.user, lesson)
@@ -391,9 +473,9 @@ def test_result(request, pk):
         'attempt': attempt,
         'lesson': lesson,
         'course': course,
-        'answers': answers,
         'correct_count': correct_count,
         'total_count': len(answers),
+        'wrong_count': len(answers) - correct_count,
         'next_item': state['next_item'] if state else None,
         'summary': summary,
         'course_completed': bool(summary and summary['completed']),

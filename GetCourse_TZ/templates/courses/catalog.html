@@ -61,6 +61,7 @@
               <span class="gc-badge">{{ course.get_difficulty_display }}</span>
               <span class="gc-badge gc-badge--muted">{{ course.category.name }}</span>
               <span class="gc-badge gc-badge--muted">{{ course.lessons_total }} {{ course.lessons_total|plural:"урок,урока,уроков" }}</span>
+              {% if course.rating_average %}<span class="gc-badge gc-badge--rating">★ {{ course.rating_average }}</span>{% endif %}
               {% if course.is_enrolled %}<span class="gc-badge gc-badge--success">Вы записаны</span>{% endif %}
             </span>
           </span>

@@ -1,5 +1,5 @@
-from django.core.validators import MaxValueValidator, MinValueValidator
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
 
@@ -72,6 +72,17 @@ class Course(models.Model):
         return self.lessons.count()
 
 
+    @property
+    def rating_average(self):
+        """Средняя оценка курса по отзывам (ФТ-31)."""
+        values = [review.rating for review in self.reviews.all() if not review.is_hidden]
+        return round(sum(values) / len(values), 1) if values else None
+
+    @property
+    def rating_count(self):
+        return sum(1 for review in self.reviews.all() if not review.is_hidden)
+
+
 class Lesson(models.Model):
     course = models.ForeignKey(
         Course,
@@ -81,8 +92,33 @@ class Lesson(models.Model):
     )
     order = models.PositiveIntegerField('Номер урока', default=1)
     title = models.CharField('Название урока', max_length=200)
-    content = models.TextField('Содержание урока')
-    video_url = models.URLField('Ссылка на видео', blank=True)
+    content = models.TextField(
+        'Текст урока',
+        blank=True,
+        help_text='Можно оставить пустым, если урок состоит только из видео или презентации.',
+    )
+    video_url = models.URLField(
+        'Ссылка на видео',
+        blank=True,
+        help_text='Ссылка на YouTube. Видео встроится прямо в урок.',
+    )
+    audio_url = models.URLField(
+        'Ссылка на аудио',
+        blank=True,
+        help_text='Ссылка на mp3-файл или на запись в YouTube — появится проигрыватель.',
+    )
+    presentation_url = models.URLField(
+        'Ссылка на презентацию',
+        blank=True,
+        help_text='Google Презентации, Canva или другой сервис со ссылкой для встраивания.',
+    )
+    presentation_file = models.FileField(
+        'Файл презентации',
+        upload_to='lessons/presentations/',
+        blank=True,
+        null=True,
+        help_text='PDF или PowerPoint. PDF откроется прямо на странице урока.',
+    )
 
     class Meta:
         verbose_name = 'Урок'
@@ -97,6 +133,111 @@ class Lesson(models.Model):
 
     def __str__(self):
         return f'{self.course.title}: {self.title}'
+
+    @property
+    def has_presentation(self):
+        return bool(self.presentation_url or self.presentation_file)
+
+    @property
+    def presentation_is_pdf(self):
+        return bool(self.presentation_file) and self.presentation_file.name.lower().endswith('.pdf')
+
+    @property
+    def material_kinds(self):
+        """Какие материалы есть в уроке — показывается метками в начале страницы."""
+        kinds = []
+        if self.video_url:
+            kinds.append('Видео')
+        if self.audio_url:
+            kinds.append('Аудио')
+        if self.has_presentation:
+            kinds.append('Презентация')
+        if self.content.strip():
+            kinds.append('Текст')
+        if self.files.exists():
+            kinds.append('Материалы для скачивания')
+        return kinds
+
+
+class Comment(models.Model):
+    """Комментарий пользователя к уроку (ФТ-30)."""
+
+    lesson = models.ForeignKey(
+        Lesson,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Урок',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Автор',
+    )
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        related_name='replies',
+        verbose_name='Ответ на комментарий',
+        blank=True,
+        null=True,
+    )
+    text = models.TextField('Текст комментария', max_length=2000)
+    created_at = models.DateTimeField('Дата', auto_now_add=True)
+    is_hidden = models.BooleanField(
+        'Скрыт',
+        default=False,
+        help_text='Скрытый комментарий виден только администратору.',
+    )
+
+    class Meta:
+        verbose_name = 'Комментарий к уроку'
+        verbose_name_plural = 'Комментарии к урокам'
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.user} — {self.lesson.title}: {self.text[:40]}'
+
+
+class Review(models.Model):
+    """Отзыв об окончании курса с оценкой (ФТ-31)."""
+
+    RATING_CHOICES = [(value, f'{value} из 5') for value in range(1, 6)]
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        verbose_name='Курс',
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        verbose_name='Автор',
+    )
+    rating = models.PositiveSmallIntegerField(
+        'Оценка',
+        choices=RATING_CHOICES,
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+    text = models.TextField('Отзыв', max_length=2000, blank=True)
+    created_at = models.DateTimeField('Дата', auto_now_add=True)
+    is_hidden = models.BooleanField('Скрыт', default=False)
+
+    class Meta:
+        verbose_name = 'Отзыв о курсе'
+        verbose_name_plural = 'Отзывы о курсах'
+        ordering = ['-created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['course', 'user'],
+                name='unique_review_per_user_course',
+            )
+        ]
+
+    def __str__(self):
+        return f'{self.user} — {self.course.title}: {self.rating} из 5'
 
 
 class LessonFile(models.Model):

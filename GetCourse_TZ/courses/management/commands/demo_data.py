@@ -17,7 +17,8 @@ from django.db.models import Q
 from django.utils import timezone
 
 from courses.models import (
-    Answer, AttemptAnswer, Category, Course, Enrollment, Lesson, Question, Test, TestAttempt,
+    Answer, AttemptAnswer, Category, Comment, Course, Enrollment, Lesson, Question,
+    Review, Test, TestAttempt,
 )
 
 from ._demo_content import LESSONS
@@ -124,6 +125,70 @@ OLD_POST_TITLES = [
 ]
 
 
+# Презентации для демонстрации материалов урока (ФТ-29).
+# Ключ — название урока, значение — файл из static/demo/presentations/.
+PRESENTATIONS = {
+    'Перспектива': 'perspektiva.pdf',
+    'Сетка и выравнивание': 'setka-figma.pdf',
+}
+
+# Комментарии к урокам (ФТ-30): название урока → список реплик.
+COMMENTS = {
+    'Перспектива': [
+        ('Долго не получалось понять, где ставить горизонт. Дошло: это просто уровень моих глаз, '
+         'а не середина листа.', []),
+        ('А если рисовать здание снизу, с земли — это тоже две точки схода?',
+         ['Да, две. Просто линия горизонта уходит вниз, и здание получается высоким.']),
+    ],
+    'Экспотреугольник': [
+        ('Самое полезное, что поняла: нельзя крутить одну настройку отдельно от других.', []),
+        ('На телефоне этих настроек нет. Что делать?',
+         ['В приложении камеры обычно есть «профи» или «ручной» режим, там всё это появляется.']),
+    ],
+    'Мерки и выкройка': [
+        ('Сняла мерки, а блузка всё равно в обтяжку. Оказалось, забыла про прибавку на свободу.', []),
+    ],
+    'Условия if / else': [
+        ('Путала == и =. Помогло правило: один знак кладёт, два сравнивают.', []),
+    ],
+    'Приоритеты': [
+        ('Разложила свои дела по четырём группам и поняла, что почти всё срочное — чужое.', []),
+    ],
+}
+
+# Отзывы о курсах (ФТ-31): название курса → список (оценка, текст).
+REVIEWS = {
+    'Архитектурный скетчинг': [
+        (5, 'Через две недели рисую от руки то, на что раньше уходил час с линейкой. '
+            'Больше всего дал урок про свет и тень.'),
+        (4, 'Хороший курс, но хотелось бы больше примеров с интерьерами, а не только с фасадами.'),
+        (5, 'Объясняют спокойно и по делу, без «вы должны чувствовать форму».'),
+    ],
+    'Python с нуля': [
+        (5, 'Первый курс, который не хочется бросить на третьем уроке. Тесты после каждой темы очень держат.'),
+        (4, 'Всё понятно, но хотелось бы больше практических задач, а не только вопросов.'),
+        (5, 'Старт был с полного нуля — сейчас пишу небольшие программы для учёбы.'),
+    ],
+    'Дизайн одежды: от эскиза до изделия': [
+        (5, 'По этому курсу получилась первая готовая вещь. Урок про долевую нить спас от перекоса.'),
+        (5, 'Понравилось, что начинают с идеи, а не сразу с выкройки.'),
+        (3, 'Материал хороший, но мне не хватило видео: по тексту некоторые швы понять трудно.'),
+    ],
+    'Фотография: свет и композиция': [
+        (5, 'Больше не снимаю в полдень — и фотографии сразу стали другими.'),
+        (4, 'Полезно. Жаль, мало про съёмку в помещении.'),
+    ],
+    'Личные финансы': [
+        (5, 'Месяц веду запись трат, как советуют в первом уроке. Результат неприятный, но полезный.'),
+        (4, 'Простым языком о том, что обычно объясняют сложно.'),
+    ],
+    'SQL для начинающих': [
+        (4, 'JOIN наконец улёгся в голове. Спасибо за картинки с таблицами.'),
+        (5, 'Коротко и по делу, ничего лишнего.'),
+    ],
+}
+
+
 class Command(BaseCommand):
     help = 'Создаёт (или удаляет с --clear) демо-данные для страницы статистики.'
 
@@ -138,6 +203,8 @@ class Command(BaseCommand):
 
             titles = [post[0] for post in POSTS] + OLD_POST_TITLES
             n_posts = Post.objects.filter(title__in=titles).delete()[0]
+            Comment.objects.filter(lesson__title__in=list(COMMENTS)).delete()
+            Review.objects.filter(course__title__in=list(REVIEWS)).delete()
             n_users = User.objects.filter(email__endswith='@' + DEMO_DOMAIN).delete()[0]
             course_titles = [item['title'] for item in COURSES]
             n_courses = Course.objects.filter(
@@ -186,6 +253,7 @@ class Command(BaseCommand):
                 lesson = Lesson.objects.create(
                     course=course, order=order, title=lesson_title, content=content,
                 )
+                self.attach_presentation(lesson)
                 test = Test.objects.create(lesson=lesson, pass_score=70)
 
                 for qn, (text, qtype, options) in enumerate(questions, start=1):
@@ -267,10 +335,75 @@ class Command(BaseCommand):
                     enrollment.completed_at = moment
                     enrollment.save(update_fields=['completed_at'])
 
+        n_social = self.make_comments_and_reviews(users, rnd, now)
+
         self.stdout.write(self.style.SUCCESS(
             f'Готово: курсов {len(courses)}, демо-пользователей {len(users)}, попыток тестов {n_attempts}, '
-            f'публикаций в ленте {n_posts}. Пароль демо-пользователей: {PASSWORD}'
+            f'публикаций в ленте {n_posts}, комментариев и отзывов {n_social}. '
+            f'Пароль демо-пользователей: {PASSWORD}'
         ))
+
+    def attach_presentation(self, lesson):
+        """Прикрепляет готовую презентацию, если она есть для этого урока (ФТ-29)."""
+        from django.conf import settings
+        from django.core.files import File
+
+        name = PRESENTATIONS.get(lesson.title)
+        if not name:
+            return
+        source = settings.BASE_DIR / 'static' / 'demo' / 'presentations' / name
+        if not source.exists():
+            return
+        with source.open('rb') as handle:
+            lesson.presentation_file.save(name, File(handle), save=True)
+
+    def make_comments_and_reviews(self, users, rnd, now):
+        """Комментарии к урокам и отзывы о курсах (ФТ-30, ФТ-31)."""
+        made = 0
+
+        for lesson_title, items in COMMENTS.items():
+            lesson = Lesson.objects.filter(title=lesson_title).first()
+            if not lesson or lesson.comments.exists():
+                continue
+            for text, replies in items:
+                author = rnd.choice(users)
+                comment = Comment.objects.create(lesson=lesson, user=author, text=text)
+                Comment.objects.filter(pk=comment.pk).update(
+                    created_at=now - timedelta(days=rnd.randint(2, 20)),
+                )
+                made += 1
+                for reply_text in replies:
+                    other = rnd.choice([u for u in users if u != author])
+                    reply = Comment.objects.create(
+                        lesson=lesson, user=other, parent=comment, text=reply_text,
+                    )
+                    Comment.objects.filter(pk=reply.pk).update(
+                        created_at=now - timedelta(days=rnd.randint(1, 2)),
+                    )
+                    made += 1
+
+        for course_title, items in REVIEWS.items():
+            course = Course.objects.filter(title=course_title).first()
+            if not course or course.reviews.exists():
+                continue
+            # Отзыв может оставить только записанный пользователь
+            enrolled = list(
+                get_user_model().objects
+                .filter(enrollments__course=course)
+                .distinct()[:len(items) + 2]
+            )
+            for index, (rating, text) in enumerate(items):
+                if index >= len(enrolled):
+                    break
+                review = Review.objects.create(
+                    course=course, user=enrolled[index], rating=rating, text=text,
+                )
+                Review.objects.filter(pk=review.pk).update(
+                    created_at=now - timedelta(days=rnd.randint(1, 25)),
+                )
+                made += 1
+
+        return made
 
     def make_posts(self):
         """Публикации ленты для главной страницы (ФТ-26, ФТ-27, ФТ-28)."""

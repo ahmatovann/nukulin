@@ -1109,3 +1109,113 @@ details.gc-course[open] .gc-course-chevron {
   .gc-lesson-foot > *, .gc-lesson-foot > div { width: 100%; }
   .gc-table th, .gc-table td { padding: 11px 12px; }
 }
+
+/* --------------------------------------------------------------------------
+   Материалы урока: аудио, презентация (ФТ-29)
+   -------------------------------------------------------------------------- */
+.gc-lesson-column { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.gc-material-title { font-size: 17px; margin: 18px 0 10px; }
+.gc-lesson > .gc-material-title:first-of-type { margin-top: 6px; }
+.gc-video--audio { padding-bottom: 170px; }
+.gc-video--slides { padding-bottom: 60%; }
+.gc-audio { width: 100%; height: 48px; border-radius: 999px; }
+.gc-pdf { display: block; width: 100%; height: 520px; border: 0; border-radius: var(--radius-sm); background: #EFEBF5; }
+.gc-pdf-note { font-size: 14px; margin: 10px 0 0; }
+
+/* --------------------------------------------------------------------------
+   Комментарии к уроку (ФТ-30)
+   -------------------------------------------------------------------------- */
+.gc-comments { display: flex; flex-direction: column; gap: 14px; padding: 26px 28px 28px; }
+.gc-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 26px; height: 24px; padding: 0 8px; margin-left: 8px;
+  border-radius: 999px; font-size: 14px; font-weight: 700;
+  background: var(--primary-light); color: var(--primary-hover);
+  vertical-align: middle;
+}
+.gc-comment-form { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; }
+.gc-comment-form textarea { width: 100%; resize: vertical; min-height: 72px; }
+.gc-field-errors { margin: 0; padding: 10px 14px; list-style: none; border-radius: 12px;
+  background: var(--error-bg); color: var(--error-text); font-size: 14px; font-weight: 600; }
+
+.gc-comment-list, .gc-comment-replies, .gc-review-list {
+  list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px;
+}
+.gc-comment-list { margin-top: 8px; padding-top: 18px; border-top: 1px solid var(--border); }
+.gc-comment, .gc-review { display: grid; grid-template-columns: 40px minmax(0, 1fr); gap: 12px; }
+.gc-comment-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 700;
+  background: var(--primary-light); color: var(--primary-hover);
+}
+.gc-comment-body { min-width: 0; }
+.gc-comment-body p { margin: 4px 0 0; }
+.gc-comment-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px; font-size: 14px; }
+.gc-comment-head strong { font-size: 15px; }
+.gc-comment-replies {
+  margin-top: 14px; padding-left: 16px; gap: 14px;
+  border-left: 2px solid var(--border);
+}
+.gc-comment-empty { padding: 18px 0 4px; }
+
+.gc-reply { margin-top: 10px; }
+.gc-reply > summary {
+  list-style: none; cursor: pointer; display: inline-block;
+  font-size: 14px; font-weight: 600; color: var(--primary);
+}
+.gc-reply > summary::-webkit-details-marker { display: none; }
+.gc-reply > summary:hover { color: var(--primary-hover); text-decoration: underline; }
+.gc-reply form { display: flex; flex-direction: column; gap: 10px; align-items: flex-start; margin-top: 10px; }
+.gc-reply textarea { width: 100%; resize: vertical; }
+
+/* --------------------------------------------------------------------------
+   Отзывы о курсе (ФТ-31)
+   -------------------------------------------------------------------------- */
+.gc-reviews { display: flex; flex-direction: column; gap: 16px; padding: 26px 28px 28px; }
+.gc-badge--rating { background: #FBF0DC; color: #8A5B11; font-weight: 700; }
+
+.gc-rating-big { display: flex; align-items: center; gap: 10px; }
+.gc-rating-big strong { font-size: 30px; line-height: 1; }
+.gc-stars { position: relative; display: inline-block; color: var(--border); letter-spacing: 2px; }
+.gc-stars-fill { position: absolute; left: 0; top: 0; overflow: hidden; white-space: nowrap; color: #E3A62C; }
+
+.gc-review-form {
+  display: flex; flex-direction: column; gap: 12px; align-items: flex-start;
+  padding: 20px; border-radius: var(--radius-sm); background: var(--primary-light);
+}
+.gc-review-form textarea { width: 100%; resize: vertical; min-height: 86px; }
+.gc-review-form .gc-detail-title { margin: 0; }
+.gc-rating-input { display: flex; flex-wrap: wrap; gap: 8px; }
+.gc-rating-option {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 8px 13px; border-radius: 12px; cursor: pointer;
+  background: #fff; box-shadow: inset 0 0 0 1px var(--primary-border);
+  font-size: 15px; font-weight: 600;
+}
+.gc-rating-option:has(input:checked) { box-shadow: inset 0 0 0 2px var(--primary); background: #fff; }
+.gc-rating-option input { accent-color: var(--primary); width: 17px; height: 17px; }
+
+.gc-review-list { margin-top: 6px; padding-top: 18px; border-top: 1px solid var(--border); }
+.gc-review.is-mine { background: #FAF7FF; border-radius: var(--radius-sm); padding: 12px 14px; margin-left: -14px; margin-right: -14px; }
+.gc-review-edit { margin: 4px 0 2px; }
+.gc-review-edit > summary {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  font-weight: 600; color: var(--brand); font-size: 15px; list-style: none;
+}
+.gc-review-edit > summary::-webkit-details-marker { display: none; }
+.gc-review-edit > summary::after { content: '▾'; font-size: 12px; }
+.gc-review-edit[open] > summary::after { content: '▴'; }
+.gc-review-stars { letter-spacing: 1px; color: var(--border); font-size: 15px; }
+.gc-review-stars .is-on { color: #E3A62C; }
+
+.gc-note { padding: 22px 26px; }
+
+@media (max-width: 620px) {
+  .gc-comments, .gc-reviews { padding: 20px 16px 22px; }
+  .gc-comment, .gc-review { grid-template-columns: 32px minmax(0, 1fr); gap: 10px; }
+  .gc-comment-avatar { width: 32px; height: 32px; font-size: 12px; }
+  .gc-comment-replies { padding-left: 10px; }
+  .gc-pdf { height: 360px; }
+  .gc-review-form { padding: 16px; }
+}

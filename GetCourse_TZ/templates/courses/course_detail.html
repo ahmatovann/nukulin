@@ -20,6 +20,11 @@
       <span class="gc-badge">{{ course.get_difficulty_display }} уровень</span>
       <span class="gc-badge gc-badge--muted">{{ track|length }} {{ track|length|plural:"урок,урока,уроков" }}</span>
       {% if students_count %}<span class="gc-badge gc-badge--muted">{{ students_count }} {{ students_count|plural:"участник,участника,участников" }}</span>{% endif %}
+      {% if rating_average %}
+        <span class="gc-badge gc-badge--rating" title="Средняя оценка по отзывам">
+          ★ {{ rating_average }} · {{ rating_count }} {{ rating_count|plural:"отзыв,отзыва,отзывов" }}
+        </span>
+      {% endif %}
     </div>
     <p class="muted">{{ course.description|linebreaksbr }}</p>
 
@@ -107,4 +112,69 @@
     {% endif %}
   </section>
 </div>
+
+<section class="gc-card gc-reviews" id="reviews" data-reveal>
+  <div class="gc-section-head" style="margin:0 0 4px">
+    <h2 class="gc-block-title">
+      Отзывы
+      {% if rating_count %}<span class="gc-count">{{ rating_count }}</span>{% endif %}
+    </h2>
+    {% if rating_average %}
+      <div class="gc-rating-big">
+        <strong>{{ rating_average }}</strong>
+        <span class="gc-stars" aria-hidden="true">★★★★★<span class="gc-stars-fill" style="width:{% widthratio rating_average 5 100 %}%">★★★★★</span></span>
+        <small class="muted">из 5</small>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if review_form %}
+    {% if my_review %}<details class="gc-review-edit"><summary>Изменить свой отзыв</summary>{% endif %}
+    <form class="gc-review-form" method="post" action="#reviews">
+      {% csrf_token %}
+      {% if not my_review %}<h3 class="gc-detail-title">Оставьте отзыв</h3>{% endif %}
+      {% if review_form.rating.errors or review_form.text.errors %}
+        <ul class="gc-field-errors">
+          {% for error in review_form.rating.errors %}<li>{{ error }}</li>{% endfor %}
+          {% for error in review_form.text.errors %}<li>{{ error }}</li>{% endfor %}
+        </ul>
+      {% endif %}
+      <div class="gc-rating-input">
+        {% for radio in review_form.rating %}
+          <label class="gc-rating-option">{{ radio.tag }}<span>{{ radio.choice_label }}</span></label>
+        {% endfor %}
+      </div>
+      {{ review_form.text }}
+      <button class="gc-btn" type="submit" name="save_review">{% if my_review %}Обновить отзыв{% else %}Отправить отзыв{% endif %}</button>
+    </form>
+    {% if my_review %}</details>{% endif %}
+  {% elif user.is_authenticated %}
+    <p class="muted">Оставить отзыв можно после записи на курс.</p>
+  {% else %}
+    <p class="muted">Чтобы оставить отзыв, <a href="{% url 'accounts:login' %}">войдите</a> и запишитесь на курс.</p>
+  {% endif %}
+
+  {% if reviews %}
+    <ul class="gc-review-list">
+      {% for review in reviews %}
+        <li class="gc-review{% if review.user_id == user.pk %} is-mine{% endif %}">
+          <span class="gc-comment-avatar" aria-hidden="true">{{ review.user.first_name|slice:":1"|upper }}{{ review.user.last_name|slice:":1"|upper }}</span>
+          <div class="gc-comment-body">
+            <div class="gc-comment-head">
+              <strong>{{ review.user.first_name }} {{ review.user.last_name|slice:":1" }}.</strong>
+              {% if review.user_id == user.pk %}<span class="gc-badge gc-badge--muted">ваш отзыв</span>{% endif %}
+              <span class="gc-review-stars" aria-label="Оценка {{ review.rating }} из 5">
+                {% for _ in "12345"|make_list %}<span class="{% if forloop.counter <= review.rating %}is-on{% endif %}">★</span>{% endfor %}
+              </span>
+              <time class="muted" datetime="{{ review.created_at|date:'Y-m-d' }}">{{ review.created_at|date:"j E Y" }}</time>
+            </div>
+            {% if review.text %}<p>{{ review.text|linebreaksbr }}</p>{% endif %}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% elif not my_review %}
+    <p class="muted gc-comment-empty">Отзывов пока нет. Ваш будет первым.</p>
+  {% endif %}
+</section>
 {% endblock %}
