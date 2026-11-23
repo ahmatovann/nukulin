@@ -41,26 +41,75 @@
 </form>
 
 {% if courses %}
-  <div class="gc-grid">
+  <p class="muted gc-hint" data-reveal>Нажмите на курс, чтобы прочитать о нём подробнее — страница при этом не меняется.</p>
+
+  <div class="gc-grid gc-catalog">
     {% for course in courses %}
-      <a class="gc-card gc-course" href="{% url 'courses:course_detail' course.pk %}" data-reveal style="--i:{{ forloop.counter0 }}">
-        <span class="gc-cover">
-          {% if course.cover_image %}
-            <img src="{{ course.cover_image.url }}" alt="">
-          {% else %}
-            <span class="gc-cover-ph" aria-hidden="true">{{ course.title|first|upper }}</span>
-          {% endif %}
-        </span>
-        <span class="gc-course-body">
-          <h3>{{ course.title }}</h3>
-          <span class="muted">{{ course.description|truncatewords:16 }}</span>
-          <span class="gc-course-meta">
-            <span class="gc-badge">{{ course.get_difficulty_display }}</span>
-            <span class="gc-badge gc-badge--muted">{{ course.category.name }}</span>
-            <span class="gc-badge gc-badge--muted">{{ course.lessons_total }} {{ course.lessons_total|plural:"урок,урока,уроков" }}</span>
+      <details class="gc-card gc-course" name="catalog-course" data-reveal style="--i:{{ forloop.counter0 }}">
+        <summary class="gc-course-face">
+          <span class="gc-cover gc-cover--{{ course.difficulty }}">
+            {% if course.cover_image %}
+              <img src="{{ course.cover_image.url }}" alt="">
+            {% else %}
+              <span class="gc-cover-ph" aria-hidden="true">{{ course.title|first|upper }}</span>
+            {% endif %}
           </span>
-        </span>
-      </a>
+          <span class="gc-course-body">
+            <h3>{{ course.title }}</h3>
+            <span class="muted gc-course-short">{{ course.description|truncatewords:16 }}</span>
+            <span class="gc-course-meta">
+              <span class="gc-badge">{{ course.get_difficulty_display }}</span>
+              <span class="gc-badge gc-badge--muted">{{ course.category.name }}</span>
+              <span class="gc-badge gc-badge--muted">{{ course.lessons_total }} {{ course.lessons_total|plural:"урок,урока,уроков" }}</span>
+              {% if course.is_enrolled %}<span class="gc-badge gc-badge--success">Вы записаны</span>{% endif %}
+            </span>
+          </span>
+          <span class="gc-course-chevron" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+          </span>
+        </summary>
+
+        <div class="gc-course-details">
+          <div class="gc-course-columns">
+            <div>
+              <h4 class="gc-detail-title">О курсе</h4>
+              <p class="muted">{{ course.description }}</p>
+
+              {% if course.outcome_list %}
+                <h4 class="gc-detail-title">Чему вы научитесь</h4>
+                <ul class="gc-outcomes">
+                  {% for item in course.outcome_list %}<li>{{ item }}</li>{% endfor %}
+                </ul>
+              {% endif %}
+            </div>
+
+            <div>
+              <h4 class="gc-detail-title">Программа — {{ course.lessons_total }} {{ course.lessons_total|plural:"урок,урока,уроков" }}</h4>
+              <ol class="gc-detail-lessons">
+                {% for lesson in course.lesson_list %}
+                  <li><span class="gc-detail-num">{{ lesson.order }}</span>{{ lesson.title }}</li>
+                {% endfor %}
+              </ol>
+              <p class="muted gc-detail-note">Первый урок открыт сразу после записи, каждый следующий — после сдачи теста предыдущего.</p>
+            </div>
+          </div>
+
+          <div class="gc-course-actions">
+            {% if course.is_enrolled %}
+              <a class="gc-btn" href="{% url 'courses:course_detail' course.pk %}">Продолжить обучение</a>
+            {% elif user.is_authenticated %}
+              <form method="post" action="{% url 'courses:enroll' course.pk %}">
+                {% csrf_token %}
+                <button class="gc-btn" type="submit">Записаться на курс</button>
+              </form>
+              <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_detail' course.pk %}">Открыть страницу курса</a>
+            {% else %}
+              <a class="gc-btn" href="{% url 'accounts:login' %}?next={% url 'courses:course_detail' course.pk %}">Войти и записаться</a>
+              <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_detail' course.pk %}">Открыть страницу курса</a>
+            {% endif %}
+          </div>
+        </div>
+      </details>
     {% endfor %}
   </div>
 {% else %}

@@ -300,9 +300,69 @@ select.gc-input { appearance: none; padding-right: 40px; background-image: url("
 
 .gc-course { display: flex; flex-direction: column; padding: 0; color: var(--text); text-decoration: none; transition: transform .3s var(--spring), box-shadow .3s ease; }
 .gc-course:hover { color: var(--text); transform: translateY(-6px); box-shadow: inset 0 0 0 1px var(--glass-edge), 0 18px 36px rgba(94, 49, 151, .16); }
+
+/* --- Каталог: карточка раскрывается на месте, без перехода на другую страницу --- */
+details.gc-course { overflow: hidden; }
+details.gc-course > summary { list-style: none; cursor: pointer; display: flex; flex-direction: column; position: relative; }
+details.gc-course > summary::-webkit-details-marker { display: none; }
+details.gc-course > summary:focus-visible { outline: 3px solid var(--primary); outline-offset: -3px; border-radius: var(--radius); }
+
+.gc-course-chevron {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 0 20px 16px; color: var(--primary);
+  transition: transform .3s var(--spring);
+}
+details.gc-course[open] .gc-course-chevron { transform: rotate(180deg); }
+
+/* Раскрытая карточка занимает всю строку и не подпрыгивает при наведении */
+details.gc-course[open] {
+  grid-column: 1 / -1;
+  transform: none;
+  box-shadow: inset 0 0 0 2px var(--primary-border), 0 18px 40px rgba(94, 49, 151, .14);
+}
+details.gc-course[open]:hover { transform: none; }
+/* В раскрытом виде обложка становится широкой полосой сверху */
+details.gc-course[open] > summary .gc-cover { aspect-ratio: auto; height: 130px; }
+details.gc-course[open] .gc-cover-ph { font-size: 52px; }
+details.gc-course[open] .gc-course-short { display: none; }
+details.gc-course[open] .gc-course-body { padding-bottom: 14px; }
+details.gc-course[open] .gc-course-body h3 { font-size: 23px; }
+details.gc-course[open] .gc-course-chevron {
+  position: absolute; top: 144px; right: 18px; padding: 0;
+  width: 36px; height: 36px; border-radius: 50%;
+  background: var(--primary-light);
+}
+
+.gc-course-details {
+  padding: 0 24px 24px;
+  display: flex; flex-direction: column; gap: 20px;
+  animation: gc-detail-in .35s var(--ease-out) both;
+}
+@keyframes gc-detail-in { from { opacity: 0; transform: translateY(-8px); } }
+
+.gc-course-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; }
+.gc-detail-title { font-size: 16px; margin: 0 0 10px; }
+.gc-course-columns > div > .gc-detail-title ~ .gc-detail-title { margin-top: 20px; }
+.gc-detail-lessons { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.gc-detail-lessons li { display: flex; align-items: center; gap: 10px; font-size: 15px; }
+.gc-detail-num {
+  flex: 0 0 26px; height: 26px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700;
+  background: var(--primary-light); color: var(--primary-hover);
+}
+.gc-detail-note { font-size: 14px; margin-top: 12px; }
+.gc-course-actions { display: flex; flex-wrap: wrap; gap: 12px; padding-top: 4px; border-top: 1px solid var(--border); padding-top: 20px; }
+.gc-hint { font-size: 15px; margin: -8px 0 0; }
+
+
 .gc-cover { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: linear-gradient(135deg, #8C5CD0, #5E3197); }
 .gc-cover img { width: 100%; height: 100%; object-fit: cover; transition: transform .6s var(--ease-out); }
 .gc-course:hover .gc-cover img { transform: scale(1.06); }
+/* Обложка окрашивается по уровню сложности — каталог становится разноцветным */
+.gc-cover.gc-cover--beginner     { background: linear-gradient(135deg, #8C5CD0, #5E3197); }
+.gc-cover.gc-cover--intermediate { background: linear-gradient(135deg, #5B8FD4, #27548E); }
+.gc-cover.gc-cover--advanced     { background: linear-gradient(135deg, #C06A9A, #8A2F5C); }
 .gc-cover-ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: rgba(255, 255, 255, .92); font-size: 44px; font-weight: 800; letter-spacing: .02em; }
 .gc-course-body { padding: 18px 20px 20px; display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; }
 .gc-course-body h3 { font-size: 19px; }
@@ -999,6 +1059,9 @@ select.gc-input { appearance: none; padding-right: 40px; background-image: url("
    -------------------------------------------------------------------------- */
 @media (max-width: 1000px) {
   .gc-feed-layout, .gc-lesson-layout { grid-template-columns: minmax(0, 1fr); }
+  .gc-course-columns { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  details.gc-course[open] > summary .gc-cover { height: 110px; }
+  details.gc-course[open] .gc-course-chevron { top: 124px; }
   .gc-post--wide { grid-template-columns: 200px minmax(0, 1fr); }
   .gc-popular, .gc-lesson-aside { position: static; }
   .gc-course-head { grid-template-columns: minmax(0, 1fr); }
@@ -1009,6 +1072,12 @@ select.gc-input { appearance: none; padding-right: 40px; background-image: url("
 
 @media (max-width: 620px) {
   .gc-filters { grid-template-columns: minmax(0, 1fr); }
+  details.gc-course[open] > summary .gc-cover { height: 96px; }
+  details.gc-course[open] .gc-course-chevron { top: 108px; right: 12px; }
+  .gc-course-details { padding: 0 16px 18px; }
+  .gc-course-actions { flex-direction: column; align-items: stretch; }
+  .gc-course-actions .gc-btn, .gc-course-actions form { width: 100%; }
+  .gc-course-actions form .gc-btn { width: 100%; }
   /* На телефоне фотография публикации встаёт над текстом */
   .gc-feed-grid { grid-template-columns: minmax(0, 1fr); gap: 14px; }
   .gc-post, .gc-post--wide, .gc-post--tall { grid-template-columns: minmax(0, 1fr); gap: 12px; padding: 12px; }

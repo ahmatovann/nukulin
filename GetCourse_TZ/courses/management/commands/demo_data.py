@@ -3,7 +3,7 @@
 Запуск:   python manage.py demo_data
 Удалить:  python manage.py demo_data --clear
 
-Создаёт 3 демонстрационных курса с уроками и тестами, 45 демо-пользователей
+Создаёт демонстрационные курсы с уроками и тестами, 45 демо-пользователей
 (e-mail вида demo01@demo.getcourse.kg, пароль Demo2026!), их записи на курсы
 и попытки тестов. Ваши собственные курсы и пользователи не изменяются.
 """
@@ -13,6 +13,7 @@ from datetime import timedelta
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 
 from courses.models import (
@@ -20,6 +21,7 @@ from courses.models import (
 )
 
 from ._demo_content import LESSONS
+from ._demo_courses import COURSES
 
 DEMO_DOMAIN = 'demo.getcourse.kg'
 DEMO_MARK = 'Демонстрационный курс.'
@@ -32,14 +34,7 @@ LAST = ['Абдыкадырова', 'Токтогулов', 'Иванова', '�
         'Петрова', 'Сыдыков', 'Мамытова', 'Асанов', 'Орозова', 'Исаев', 'Кадырова', 'Смирнов', 'Темирова',
         'Алиев', 'Шаршеева', 'Ли']
 
-COURSES = [
-    ('Программирование', 'Python с нуля', 'beginner', [
-        'Введение в Python', 'Переменные и типы', 'Условия if / else', 'Циклы for и while', 'Функции', 'Списки и словари']),
-    ('Базы данных', 'SQL для начинающих', 'beginner', [
-        'Что такое база данных', 'SELECT и WHERE', 'Сортировка и группировка', 'JOIN — соединение таблиц', 'Изменение данных']),
-    ('Веб-разработка', 'HTML и CSS', 'intermediate', [
-        'Структура HTML-страницы', 'Текст, ссылки, картинки', 'Основы CSS', 'Flexbox', 'Адаптивная вёрстка']),
-]
+
 
 
 # Публикации ленты.
@@ -144,7 +139,10 @@ class Command(BaseCommand):
             titles = [post[0] for post in POSTS] + OLD_POST_TITLES
             n_posts = Post.objects.filter(title__in=titles).delete()[0]
             n_users = User.objects.filter(email__endswith='@' + DEMO_DOMAIN).delete()[0]
-            n_courses = Course.objects.filter(description__startswith=DEMO_MARK).delete()[0]
+            course_titles = [item['title'] for item in COURSES]
+            n_courses = Course.objects.filter(
+                Q(title__in=course_titles) | Q(description__startswith=DEMO_MARK)
+            ).delete()[0]
             self.stdout.write(self.style.SUCCESS(
                 f'Удалено демо-записей: {n_users + n_courses + n_posts}'
             ))
@@ -154,37 +152,41 @@ class Command(BaseCommand):
         now = timezone.now()
 
         courses = []
-        for cat_name, title, level, lesson_titles in COURSES:
+        for index, data in enumerate(COURSES):
+            title = data['title']
             if Course.objects.filter(title=title).exists():
                 self.stdout.write(f'Курс «{title}» уже есть — пропускаю.')
                 continue
-            category, _ = Category.objects.get_or_create(name=cat_name)
+
+            category, _ = Category.objects.get_or_create(name=data['category'])
             course = Course.objects.create(
-                title=title, category=category, difficulty=level, status='published',
-                description=f'{DEMO_MARK} Курс «{title}»: уроки идут по порядку, после каждого — '
-                            f'короткий тест. Следующий урок открывается, когда предыдущий тест сдан.',
-                learning_outcomes='\n'.join(lesson_titles[:4]),
-                created_at=now - timedelta(weeks=9),
+                title=title,
+                category=category,
+                difficulty=data['difficulty'],
+                status='published',
+                description=data['description'],
+                learning_outcomes=data['outcomes'],
+                # Курсы добавлялись в разное время — так каталог выглядит живым
+                created_at=now - timedelta(weeks=9, days=-index * 2),
             )
-            hard_lesson = rnd.randint(2, len(lesson_titles) - 2)
-            for order, lesson_title in enumerate(lesson_titles, start=1):
-                material = LESSONS.get(lesson_title, {})
+
+            lessons_data = data['lessons']
+            hard_lesson = rnd.randint(2, max(2, len(lessons_data) - 1))
+
+            for order, item in enumerate(lessons_data, start=1):
+                # Урок задан строкой — текст и вопросы берём из _demo_content.py
+                if isinstance(item, str):
+                    material = LESSONS.get(item, {})
+                    lesson_title = item
+                    content = material.get('text', f'Материал урока «{item}».')
+                    questions = material.get('questions') or []
+                else:
+                    lesson_title, content, questions = item
+
                 lesson = Lesson.objects.create(
-                    course=course, order=order, title=lesson_title,
-                    content=material.get('text', f'Материал урока «{lesson_title}».'),
+                    course=course, order=order, title=lesson_title, content=content,
                 )
                 test = Test.objects.create(lesson=lesson, pass_score=70)
-
-                questions = material.get('questions')
-                if not questions:
-                    # Если готовых вопросов для урока нет, создаём заготовки
-                    questions = [
-                        (f'Вопрос {qn} по теме «{lesson_title}»',
-                         'multiple' if qn == 4 else 'single',
-                         [(f'Вариант {an}', (an <= 2) if qn == 4 else an == 1)
-                          for an in range(1, 5 if qn == 4 else 4)])
-                        for qn in range(1, 5)
-                    ]
 
                 for qn, (text, qtype, options) in enumerate(questions, start=1):
                     question = Question.objects.create(
@@ -193,6 +195,7 @@ class Command(BaseCommand):
                     for an, (answer_text, is_correct) in enumerate(options, start=1):
                         Answer.objects.create(question=question, order=an,
                                               text=answer_text, is_correct=is_correct)
+
             courses.append((course, hard_lesson))
 
         n_posts = self.make_posts()
@@ -227,7 +230,7 @@ class Command(BaseCommand):
             for l in lessons:
                 for q in questions[l.pk]:
                     errs[q.pk] = 0.1 + rnd.random() * 0.25 + (0.3 if l.order == hard_lesson and q.order in (2, 4) else 0)
-            for user in rnd.sample(users, k=rnd.randint(26, 38)):
+            for user in rnd.sample(users, k=rnd.randint(4, 18)):
                 # Интерес к курсу растёт: больше записей в последние недели.
                 days_ago = int(56 * (1 - rnd.random() ** 0.7))
                 enrolled = now - timedelta(days=days_ago, hours=rnd.randint(0, 23))

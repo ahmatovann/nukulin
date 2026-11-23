@@ -57,6 +57,7 @@ def catalog(request):
         Course.objects
         .filter(status='published')
         .select_related('category')
+        .prefetch_related('lessons')
         .annotate(lessons_total=Count('lessons', distinct=True))
     )
 
@@ -68,6 +69,23 @@ def catalog(request):
         courses = courses.filter(category_id=int(category_id))
     if difficulty in dict(Course.DIFFICULTY_CHOICES):
         courses = courses.filter(difficulty=difficulty)
+
+    # Карточка раскрывается прямо в каталоге, поэтому подробности нужны сразу:
+    # чему научится студент и список уроков.
+    courses = list(courses)
+    enrolled_ids = set()
+    if request.user.is_authenticated:
+        enrolled_ids = set(
+            Enrollment.objects.filter(user=request.user).values_list('course_id', flat=True)
+        )
+    for course in courses:
+        course.outcome_list = [
+            line.strip(' -–•\t')
+            for line in (course.learning_outcomes or '').splitlines()
+            if line.strip(' -–•\t')
+        ]
+        course.lesson_list = sorted(course.lessons.all(), key=lambda lesson: lesson.order)
+        course.is_enrolled = course.pk in enrolled_ids
 
     return render(request, 'courses/catalog.html', {
         'courses': courses,
