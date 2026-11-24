@@ -1,1 +1,5 @@
+{% if user.is_staff %}
+<span class="gc-badge" title="Администратору оплата и коды не нужны">Вы администратор: оплата не нужна</span>
+{% else %}
 <a class="gc-btn" href="{% url 'courses:course_access' course.pk %}">Получить доступ · {{ course.price }} сом</a>
+{% endif %}

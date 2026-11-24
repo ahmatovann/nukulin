@@ -529,3 +529,8 @@ class Payment(models.Model):
 
     def __str__(self):
         return f'{self.user} — {self.course}: {self.amount} сом'
+
+    @property
+    def receipt_number(self):
+        """Номер чека берётся из номера записи в журнале, отдельное поле не нужно."""
+        return f'{self.pk:06d}'

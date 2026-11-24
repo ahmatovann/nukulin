@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Чек № {{ payment.receipt_number }}{% endblock %}
+{% block content %}
+<nav class="gc-crumbs" aria-label="Навигация">
+  <a href="{% url 'courses:my_courses' %}">Мои курсы</a>
+  <span aria-hidden="true">/</span>
+  <span>Чек об оплате</span>
+</nav>
+
+<article class="gc-card gc-receipt" id="receipt" data-reveal>
+  <header class="gc-receipt-head">
+    <div>
+      <span class="gc-eyebrow">GetCourse</span>
+      <h1>Чек № {{ payment.receipt_number }}</h1>
+    </div>
+    <span class="gc-badge gc-badge--success">Оплачено</span>
+  </header>
+
+  <dl class="gc-receipt-rows">
+    <div><dt>Курс</dt><dd>{{ payment.course.title }}</dd></div>
+    <div><dt>Покупатель</dt><dd>{{ payment.user.get_full_name|default:payment.user.email }}</dd></div>
+    <div><dt>Эл. почта</dt><dd>{{ payment.user.email }}</dd></div>
+    <div><dt>Дата и время</dt><dd>{{ payment.created_at|date:"j E Y, H:i" }}</dd></div>
+    <div><dt>Карта</dt><dd>•••• {{ payment.card_last4 }}</dd></div>
+    <div class="gc-receipt-total"><dt>Сумма</dt><dd>{{ payment.amount }} сом</dd></div>
+  </dl>
+
+  <p class="muted gc-receipt-note">Это учебная оплата: деньги не списывались, номер карты не хранится — виден только его конец.</p>
+
+  <div class="gc-receipt-actions">
+    <button class="gc-btn" type="button" onclick="window.print()">Сохранить или распечатать</button>
+    <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_detail' payment.course.pk %}">Перейти к курсу</a>
+  </div>
+  <p class="muted gc-receipt-hint">В окне печати выберите «Сохранить как PDF», чтобы получить файл.</p>
+</article>
+{% endblock %}

@@ -224,3 +224,68 @@ class SessionTests(TestCase):
         from django.conf import settings
         self.assertEqual(settings.SESSION_COOKIE_AGE, 2 * 60 * 60)
         self.assertTrue(settings.SESSION_SAVE_EVERY_REQUEST)
+
+
+class ReceiptAndStaffTests(TestCase):
+    """Чек об оплате и поведение администратора на страницах доступа."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            email='u@test.kg', password='Strong-pass-1', first_name='Аня', last_name='Тестова')
+        self.other = User.objects.create_user(email='o@test.kg', password='Strong-pass-1')
+        self.admin = User.objects.create_user(email='a@test.kg', password='Strong-pass-1', is_staff=True)
+        self.course = make_course()
+
+    def pay(self):
+        self.client.force_login(self.user)
+        return self.client.post(
+            f'/course/{self.course.pk}/access/',
+            {'action': 'pay', 'card_number': '4242 4242 4242 4242', 'expiry': '12/39', 'cvv': '123'})
+
+    def test_payment_redirects_to_receipt_with_details(self):
+        response = self.pay()
+        payment = Payment.objects.get()
+        self.assertRedirects(response, f'/payment/{payment.pk}/receipt/')
+        page = self.client.get(f'/payment/{payment.pk}/receipt/')
+        self.assertContains(page, payment.receipt_number)
+        self.assertContains(page, self.course.title)
+        self.assertContains(page, '1000 сом')
+        self.assertContains(page, '4242')
+        self.assertNotContains(page, '4242 4242')
+
+    def test_receipt_is_private(self):
+        self.pay()
+        payment = Payment.objects.get()
+        self.client.force_login(self.other)
+        self.assertEqual(self.client.get(f'/payment/{payment.pk}/receipt/').status_code, 404)
+        self.client.logout()
+        self.assertEqual(self.client.get(f'/payment/{payment.pk}/receipt/').status_code, 302)
+        self.client.force_login(self.admin)
+        self.assertEqual(self.client.get(f'/payment/{payment.pk}/receipt/').status_code, 200)
+
+    def test_receipt_link_in_my_courses(self):
+        self.pay()
+        payment = Payment.objects.get()
+        page = self.client.get('/my/')
+        self.assertContains(page, f'/payment/{payment.pk}/receipt/')
+
+    def test_staff_cannot_open_access_pages(self):
+        self.client.force_login(self.admin)
+        response = self.client.get('/code/')
+        self.assertEqual(response.status_code, 302)
+        response = self.client.get(f'/course/{self.course.pk}/access/')
+        self.assertRedirects(response, f'/course/{self.course.pk}/', fetch_redirect_response=False)
+        self.client.post(
+            f'/course/{self.course.pk}/access/',
+            {'action': 'pay', 'card_number': '4242 4242 4242 4242', 'expiry': '12/39', 'cvv': '123'})
+        self.assertFalse(Payment.objects.exists())
+        self.assertFalse(Enrollment.objects.filter(user=self.admin).exists())
+
+    def test_staff_does_not_see_access_buttons(self):
+        self.client.force_login(self.admin)
+        page = self.client.get('/catalog/')
+        self.assertNotContains(page, 'У меня есть код')
+        self.assertNotContains(page, 'Получить доступ')
+        page = self.client.get(f'/course/{self.course.pk}/')
+        self.assertNotContains(page, 'Получить доступ')

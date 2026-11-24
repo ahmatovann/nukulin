@@ -13,7 +13,7 @@ from . import access, notifications
 from .forms import AccessCodeForm, CommentForm, PaymentForm, ReviewForm
 from .models import (
     Answer, AttemptAnswer, Category, Comment, Course, Enrollment, Lesson, Review,
-    Test, TestAttempt,
+    Payment, Test, TestAttempt,
 )
 from . import rating
 from .progress import build_track, course_progress, lesson_state, track_summary
@@ -192,10 +192,17 @@ def _welcome(request, course, text=None):
     return redirect('courses:course_detail', pk=course.pk)
 
 
+STAFF_NO_ACCESS = 'Администратору оплата и коды не нужны: курсами он управляет в админ-панели.'
+
+
 @login_required
 def course_access(request, pk):
     """Страница доступа к курсу: оплата картой или код от администратора (ФТ-33, ФТ-34)."""
     course = get_object_or_404(Course, pk=pk, status='published')
+
+    if request.user.is_staff:
+        messages.info(request, STAFF_NO_ACCESS)
+        return redirect('courses:course_detail', pk=course.pk)
 
     try:
         access.check_can_join(request.user, course)
@@ -223,15 +230,16 @@ def course_access(request, pk):
             pay_form = PaymentForm(request.POST)
             if pay_form.is_valid():
                 try:
-                    access.pay(request.user, course, pay_form.cleaned_data['card_number'])
+                    payment = access.pay(request.user, course, pay_form.cleaned_data['card_number'])
                 except access.AccessError as error:
                     messages.error(request, str(error))
                 else:
                     notifications.access_granted(request.user, course, 'payment', site)
-                    return _welcome(
-                        request, course,
+                    messages.success(
+                        request,
                         f'Оплата прошла: {course.price} сом. Вы записаны на курс «{course.title}».',
                     )
+                    return redirect('courses:payment_receipt', pk=payment.pk)
 
     return render(request, 'courses/course_access.html', {
         'course': course,
@@ -244,6 +252,9 @@ def course_access(request, pk):
 @login_required
 def redeem_code_page(request):
     """«У меня есть код»: код сам определяет курс. Так открываются закрытые курсы (ФТ-33)."""
+    if request.user.is_staff:
+        messages.info(request, STAFF_NO_ACCESS)
+        return redirect('courses:catalog')
     form = AccessCodeForm(request.POST or None)
     if request.method == 'POST' and form.is_valid():
         try:
@@ -257,6 +268,15 @@ def redeem_code_page(request):
 
 
 @login_required
+def payment_receipt(request, pk):
+    """Чек об оплате: его можно распечатать или сохранить в PDF. Видит только плательщик и администратор."""
+    payment = get_object_or_404(Payment.objects.select_related('user', 'course'), pk=pk)
+    if payment.user_id != request.user.pk and not request.user.is_staff:
+        raise Http404
+    return render(request, 'courses/receipt.html', {'payment': payment})
+
+
+@login_required
 def my_courses(request):
     """Раздел «Мои курсы» с процентом прохождения (ФТ-9, UC-9)."""
     enrollments = (
@@ -265,10 +285,17 @@ def my_courses(request):
         .select_related('course', 'course__category')
     )
 
+    receipts = {}
+    for payment in Payment.objects.filter(user=request.user).order_by('created_at'):
+        receipts[payment.course_id] = payment
+
     in_progress, completed = [], []
     for enrollment in enrollments:
         summary = course_progress(request.user, enrollment.course)
-        row = {'enrollment': enrollment, 'course': enrollment.course, 'summary': summary}
+        row = {
+            'enrollment': enrollment, 'course': enrollment.course, 'summary': summary,
+            'payment': receipts.get(enrollment.course_id),
+        }
         _sync_completion(enrollment, summary)
         (completed if summary['completed'] else in_progress).append(row)
 
