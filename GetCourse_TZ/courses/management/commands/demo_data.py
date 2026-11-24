@@ -296,6 +296,7 @@ class Command(BaseCommand):
                     course=course, order=order, title=lesson_title, content=content,
                 )
                 self.attach_presentation(lesson)
+                self.attach_materials(lesson)
                 test = Test.objects.create(lesson=lesson, pass_score=70)
 
                 for qn, (text, qtype, variants) in enumerate(questions, start=1):
@@ -408,6 +409,10 @@ class Command(BaseCommand):
             return
         with source.open('rb') as handle:
             lesson.presentation_file.save(name, File(handle), save=True)
+
+    def attach_materials(self, lesson):
+        from ._demo_materials import attach_materials
+        attach_materials(lesson)
 
     def make_access_codes(self):
         """Выпускает коды: по одному заметному на курс и три одноразовых."""

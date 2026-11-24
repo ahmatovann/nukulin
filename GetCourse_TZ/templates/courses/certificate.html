@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}Сертификат · {{ course.title }}{% endblock %}
+{% block content %}
+<nav class="gc-crumbs" aria-label="Навигация">
+  <a href="{% url 'courses:my_courses' %}">Мои курсы</a>
+  <span aria-hidden="true">/</span>
+  <a href="{% url 'courses:course_detail' course.pk %}">{{ course.title }}</a>
+</nav>
+
+<article class="gc-card gc-cert" id="certificate" data-reveal>
+  <div class="gc-cert-frame">
+    <span class="gc-eyebrow">GetCourse</span>
+    <h1>Сертификат</h1>
+    <p class="gc-cert-lead">подтверждает, что</p>
+    <p class="gc-cert-name">{{ request.user.first_name }} {{ request.user.last_name }}</p>
+    <p class="gc-cert-lead">успешно прошёл(-ла) курс</p>
+    <p class="gc-cert-course">«{{ course.title }}»</p>
+    <p class="gc-cert-meta">{{ lessons_total }} уроков, тесты по всем урокам сданы</p>
+    <div class="gc-cert-foot">
+      <span>Дата: {{ enrollment.completed_at|date:"j E Y" }}</span>
+      <span>№ {{ number }}</span>
+    </div>
+  </div>
+</article>
+
+<div class="gc-receipt-actions gc-cert-actions">
+  <button class="gc-btn" type="button" onclick="window.print()">Сохранить или распечатать</button>
+  <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_detail' course.pk %}">Назад к курсу</a>
+</div>
+<p class="muted gc-receipt-hint gc-cert-actions">В окне печати выберите «Сохранить как PDF», чтобы получить файл.</p>
+{% endblock %}

@@ -289,3 +289,45 @@ class ReceiptAndStaffTests(TestCase):
         self.assertNotContains(page, 'Получить доступ')
         page = self.client.get(f'/course/{self.course.pk}/')
         self.assertNotContains(page, 'Получить доступ')
+
+
+class CertificateTests(TestCase):
+    """Сертификат после завершения курса и данные профиля."""
+
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user(
+            email='u@test.kg', password='Strong-pass-1', first_name='Аня', last_name='Тестова')
+        self.course = make_course()
+        access.pay(self.user, self.course, '4242424242424242')
+        self.client.force_login(self.user)
+
+    def finish(self):
+        from .models import TestAttempt
+        TestAttempt.objects.create(user=self.user, test=self.course.lessons.first().test, score=100, passed=True)
+
+    def test_certificate_closed_until_course_finished(self):
+        response = self.client.get(f'/course/{self.course.pk}/certificate/')
+        self.assertRedirects(response, f'/course/{self.course.pk}/', fetch_redirect_response=False)
+
+    def test_certificate_after_finish(self):
+        self.finish()
+        page = self.client.get(f'/course/{self.course.pk}/certificate/')
+        self.assertEqual(page.status_code, 200)
+        self.assertContains(page, 'Аня Тестова')
+        self.assertContains(page, self.course.title)
+        self.assertContains(page, 'Сохранить или распечатать')
+
+    def test_certificate_needs_enrollment(self):
+        other = get_user_model().objects.create_user(email='o@test.kg', password='Strong-pass-1')
+        self.client.force_login(other)
+        response = self.client.get(f'/course/{self.course.pk}/certificate/')
+        self.assertRedirects(response, f'/course/{self.course.pk}/', fetch_redirect_response=False)
+
+    def test_profile_shows_real_numbers_and_certificate(self):
+        page = self.client.get('/accounts/profile/')
+        self.assertContains(page, 'Сертификатов пока нет')
+        self.finish()
+        page = self.client.get('/accounts/profile/')
+        self.assertContains(page, f'/course/{self.course.pk}/certificate/')
+        self.assertNotContains(page, 'Значков')

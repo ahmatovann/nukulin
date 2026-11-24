@@ -93,10 +93,28 @@ def profile(request):
         ]
         extra = [(Test.objects.count(), 'Тестов в системе')]
     else:
-        # Данные обучения появятся вместе с записью на курсы и тестами.
-        stats = [(0, 'Курсов'), (0, 'Уроков пройдено'), ('—', 'Средний балл')]
+        from django.db.models import Avg, Max
+        from courses.models import Enrollment, TestAttempt
+        from courses.progress import course_progress
+
+        enrollments = list(Enrollment.objects.filter(user=user).select_related('course').order_by('-enrolled_at'))
+        lessons_done = 0
+        certificates = []
+        for enrollment in enrollments:
+            summary = course_progress(user, enrollment.course)
+            lessons_done += summary['done']
+            if summary['completed']:
+                certificates.append(enrollment)
+        best = (TestAttempt.objects.filter(user=user).values('test')
+                .annotate(top=Max('score')).aggregate(avg=Avg('top'))['avg'])
+        stats = [
+            (len(enrollments), 'Курсов'),
+            (lessons_done, 'Уроков пройдено'),
+            (f'{round(best)}%' if best is not None else '—', 'Средний балл'),
+        ]
         extra = []
     return render(request, 'accounts/profile.html', {
+        'certificates': certificates if not user.is_staff else [],
         'telegram_ready': telegram.is_configured(),
         'completeness': profile_completeness(user),
         'stats': stats,

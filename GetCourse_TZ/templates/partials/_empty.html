@@ -1,7 +1,7 @@
 {% load static %}
 {# Пустое состояние: «ничего не найдено», «пока пусто» и т. п. Параметры: title, text, small #}
 <div class="gc-empty-state{% if small %} is-small{% endif %}">
-  <img class="gc-empty-img" src="{% static 'img/empty.jpg' %}" alt="" loading="lazy">
+  <img class="gc-empty-img" src="{% static 'img/stickers/cat.png' %}" alt="" loading="lazy">
   {% if title %}<h3>{{ title }}</h3>{% endif %}
   {% if text %}<p class="muted">{{ text }}</p>{% endif %}
 </div>

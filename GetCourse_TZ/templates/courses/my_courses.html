@@ -52,7 +52,10 @@
             <span class="gc-badge gc-badge--success">Курс пройден{% if row.enrollment.completed_at %} {{ row.enrollment.completed_at|date:"j E Y" }}{% endif %}</span>
             {% if row.payment %}<small><a href="{% url 'courses:payment_receipt' row.payment.pk %}">Чек № {{ row.payment.receipt_number }}</a></small>{% endif %}
           </div>
-          <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_progress' row.course.pk %}">Результаты</a>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <a class="gc-btn" href="{% url 'courses:certificate' row.course.pk %}">Сертификат</a>
+            <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_progress' row.course.pk %}">Результаты</a>
+          </div>
         </article>
       {% endfor %}
     </section>

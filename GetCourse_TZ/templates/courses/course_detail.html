@@ -40,6 +40,7 @@
       <div class="gc-hero-actions">
         {% if summary.completed %}
           <span class="gc-badge gc-badge--success">Курс пройден</span>
+          <a class="gc-btn" href="{% url 'courses:certificate' course.pk %}">Сертификат</a>
           <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_progress' course.pk %}">Мои результаты</a>
         {% elif summary.next_item %}
           <a class="gc-btn" href="{% url 'courses:lesson_detail' summary.next_item.lesson.pk %}">

@@ -38,9 +38,20 @@
       {% else %}
         <h2 class="gc-block-title">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="6"/><path d="M8.5 14L7 22l5-3 5 3-1.5-8"/></svg>
-          Значки
+          Сертификаты
         </h2>
-        {% include 'partials/_empty.html' with small=True title='Значков пока нет' text='Вы ещё не завершили ни одного курса. Продолжайте учиться!' %}
+        {% if certificates %}
+          <ul class="gc-cert-list">
+            {% for enrollment in certificates %}
+              <li>
+                <a href="{% url 'courses:certificate' enrollment.course.pk %}">{{ enrollment.course.title }}</a>
+                {% if enrollment.completed_at %}<span class="muted">{{ enrollment.completed_at|date:"j E Y" }}</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          {% include 'partials/_empty.html' with small=True title='Сертификатов пока нет' text='Сертификат появится после завершения курса.' %}
+        {% endif %}
       {% endif %}
     </section>
   </div>

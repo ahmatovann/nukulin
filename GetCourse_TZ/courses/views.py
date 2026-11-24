@@ -277,6 +277,30 @@ def payment_receipt(request, pk):
 
 
 @login_required
+def certificate(request, pk):
+    """Сертификат о прохождении курса: доступен после сдачи всех тестов, его можно сохранить в PDF."""
+    course = get_object_or_404(Course, pk=pk)
+    enrollment = Enrollment.objects.filter(user=request.user, course=course).first()
+    if not enrollment:
+        messages.error(request, 'Сертификат выдаётся тем, кто записан на курс.')
+        return redirect('courses:course_detail', pk=course.pk)
+
+    summary = course_progress(request.user, course)
+    _sync_completion(enrollment, summary)
+    if not summary['completed']:
+        messages.info(request, 'Сертификат появится после того, как вы сдадите тесты всех уроков.')
+        return redirect('courses:course_detail', pk=course.pk)
+
+    enrollment.refresh_from_db()
+    return render(request, 'courses/certificate.html', {
+        'course': course,
+        'enrollment': enrollment,
+        'number': f'{enrollment.pk:06d}',
+        'lessons_total': summary['total'],
+    })
+
+
+@login_required
 def my_courses(request):
     """Раздел «Мои курсы» с процентом прохождения (ФТ-9, UC-9)."""
     enrollments = (

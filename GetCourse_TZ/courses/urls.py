@@ -14,6 +14,7 @@ urlpatterns = [
     path('course/<int:pk>/access/', views.course_access, name='course_access'),
     path('code/', views.redeem_code_page, name='redeem_code'),
     path('payment/<int:pk>/receipt/', views.payment_receipt, name='payment_receipt'),
+    path('course/<int:pk>/certificate/', views.certificate, name='certificate'),
     path('course/<int:pk>/progress/', views.course_progress_page, name='course_progress'),
 
     # Обучение (UC-9 — UC-13)

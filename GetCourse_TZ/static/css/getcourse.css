@@ -1314,3 +1314,24 @@ details.gc-course[open] .gc-course-chevron {
   .gc-crumbs, .gc-receipt-actions, .gc-receipt-hint { display: none !important; }
   .gc-receipt { max-width: none; }
 }
+
+/* --------------------------------------------------------------------------
+   Сертификат о прохождении курса
+   -------------------------------------------------------------------------- */
+.gc-cert { width: min(100%, 820px); max-width: 820px; margin-inline: auto; padding: 14px; }
+.gc-cert-frame { border: 2px solid var(--primary, #7442B8); border-radius: 14px; padding: 40px 28px; text-align: center; display: grid; gap: 6px; justify-items: center; }
+.gc-cert-frame h1 { margin: 4px 0 10px; font-size: clamp(32px, 6vw, 48px); }
+.gc-cert-lead { margin: 0; color: var(--muted, #6B6480); }
+.gc-cert-name { margin: 6px 0 10px; font-size: clamp(24px, 4.5vw, 36px); font-weight: 700; overflow-wrap: anywhere; }
+.gc-cert-course { margin: 6px 0; font-size: clamp(20px, 3.6vw, 28px); font-weight: 700; color: var(--primary, #7442B8); overflow-wrap: anywhere; }
+.gc-cert-meta { margin: 0; color: var(--muted, #6B6480); }
+.gc-cert-foot { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; width: 100%; margin-top: 28px; padding-top: 14px; border-top: 1px dashed var(--line, #D9D2E6); }
+.gc-cert-actions { max-width: 820px; margin-inline: auto; }
+.gc-cert-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.gc-cert-list li { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 10px 0; border-bottom: 1px dashed var(--line, #D9D2E6); }
+@page cert { size: A4 landscape; margin: 14mm; }
+.gc-cert { page: cert; }
+@media print {
+  .gc-cert-actions { display: none !important; }
+  .gc-cert { max-width: none; border: 0; }
+}
