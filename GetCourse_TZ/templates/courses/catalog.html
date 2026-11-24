@@ -8,7 +8,10 @@
     <span class="gc-eyebrow">Каталог</span>
     <h1>Курсы школы</h1>
   </div>
-  <p class="muted">Найдено курсов: {{ courses|length }}</p>
+  <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+    <p class="muted" style="margin:0">Найдено курсов: {{ courses|length }}</p>
+    {% if user.is_authenticated %}<a class="gc-btn gc-btn--ghost" href="{% url 'courses:redeem_code' %}">У меня есть код</a>{% endif %}
+  </div>
 </section>
 
 <form class="gc-card gc-filters" method="get" action="{% url 'courses:catalog' %}" data-reveal>
@@ -61,6 +64,7 @@
               <span class="gc-badge">{{ course.get_difficulty_display }}</span>
               <span class="gc-badge gc-badge--muted">{{ course.category.name }}</span>
               <span class="gc-badge gc-badge--muted">{{ course.lessons_total }} {{ course.lessons_total|plural:"урок,урока,уроков" }}</span>
+              {% include 'courses/_access_badge.html' %}
               {% if course.rating_average %}<span class="gc-badge gc-badge--rating">★ {{ course.rating_average }}</span>{% endif %}
               {% if course.is_enrolled %}<span class="gc-badge gc-badge--success">Вы записаны</span>{% endif %}
             </span>
@@ -99,13 +103,10 @@
             {% if course.is_enrolled %}
               <a class="gc-btn" href="{% url 'courses:course_detail' course.pk %}">Продолжить обучение</a>
             {% elif user.is_authenticated %}
-              <form method="post" action="{% url 'courses:enroll' course.pk %}">
-                {% csrf_token %}
-                <button class="gc-btn" type="submit">Записаться на курс</button>
-              </form>
+              {% include 'courses/_enroll_action.html' %}
               <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_detail' course.pk %}">Открыть страницу курса</a>
             {% else %}
-              <a class="gc-btn" href="{% url 'accounts:login' %}?next={% url 'courses:course_detail' course.pk %}">Войти и записаться</a>
+              <a class="gc-btn" href="{% url 'accounts:login' %}?next={% url 'courses:course_detail' course.pk %}">Войти, чтобы получить доступ</a>
               <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_detail' course.pk %}">Открыть страницу курса</a>
             {% endif %}
           </div>

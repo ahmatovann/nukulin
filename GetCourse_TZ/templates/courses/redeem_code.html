@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Код доступа{% endblock %}
+{% block content %}
+<div class="gc-access gc-access--single">
+  <section class="gc-card gc-access-main" data-reveal>
+    <h1>У меня есть код</h1>
+    <p class="muted">Введите код, который вам выдал администратор. Курс откроется сразу, в том числе закрытый — его нет в каталоге.</p>
+    <form method="post" class="gc-access-form" novalidate>
+      {% csrf_token %}
+      <div class="gc-field">
+        <label for="{{ form.code.id_for_label }}">{{ form.code.label }}</label>
+        {{ form.code }}
+        {% for error in form.code.errors %}<p class="gc-field-error">{{ error }}</p>{% endfor %}
+      </div>
+      <button class="gc-btn" type="submit">Открыть курс</button>
+    </form>
+    <p class="muted gc-access-note">Можно и в Telegram: напишите боту <code>/code ВАШ-КОД</code> (аккаунт нужно подключить в профиле).</p>
+  </section>
+</div>
+{% endblock %}

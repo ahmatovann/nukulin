@@ -17,7 +17,7 @@ def popular_courses_of_week():
     from courses.models import Course
 
     since = timezone.now() - timedelta(days=POPULAR_DAYS)
-    published = Course.objects.filter(status='published')
+    published = Course.objects.filter(status='published', is_private=False)
 
     popular = list(
         published

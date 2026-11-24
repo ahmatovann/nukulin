@@ -6,6 +6,9 @@ from django.urls import reverse
 from django.utils.html import format_html
 
 from .models import (
+    generate_access_code,
+    AccessCode,
+    Payment,
     Comment,
     Review,
     Answer,
@@ -130,15 +133,16 @@ class CategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Course)
 class CourseAdmin(nested_admin.NestedModelAdmin):
-    list_display = ('title', 'category', 'difficulty', 'status', 'lessons_total', 'created_at')
-    list_filter = ('status', 'difficulty', 'category')
+    list_display = ('title', 'category', 'difficulty', 'price', 'is_private', 'status', 'lessons_total', 'created_at')
+    list_filter = ('status', 'is_private', 'difficulty', 'category')
     search_fields = ('title', 'description')
     fieldsets = (
         (None, {'fields': ('title', 'category', 'difficulty', 'status')}),
+        ('Доступ', {'fields': ('price', 'is_private')}),
         ('Описание', {'fields': ('description', 'learning_outcomes', 'cover_image')}),
     )
     inlines = [LessonInline]
-    actions = ['publish_courses', 'make_draft']
+    actions = ['publish_courses', 'make_draft', 'make_codes']
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(_lessons=Count('lessons'))
@@ -178,6 +182,19 @@ class CourseAdmin(nested_admin.NestedModelAdmin):
                         messages.WARNING,
                     )
         return super().delete_view(request, object_id, extra_context)
+
+    @admin.action(description='Выпустить 10 кодов доступа для выбранных курсов')
+    def make_codes(self, request, queryset):
+        total = 0
+        for course in queryset:
+            AccessCode.objects.bulk_create([AccessCode(course=course, code=generate_access_code()) for _ in range(10)])
+            total += 10
+        if total:
+            self.message_user(
+                request,
+                f'Выпущено кодов: {total}. Каждый рассчитан на одного человека. Посмотреть их можно в разделе «Коды доступа».',
+                messages.SUCCESS,
+            )
 
     @admin.action(description='Опубликовать выбранные курсы')
     def publish_courses(self, request, queryset):
@@ -344,11 +361,20 @@ class TestAdmin(nested_admin.NestedModelAdmin):
 
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ('user', 'course', 'enrolled_at', 'completed_at')
-    list_filter = ('course',)
+    list_display = ('user', 'course', 'source', 'enrolled_at', 'completed_at')
+    list_filter = ('source', 'course')
     search_fields = ('user__email', 'user__first_name', 'user__last_name', 'course__title')
     autocomplete_fields = ('user', 'course')
     date_hierarchy = 'enrolled_at'
+
+    def save_model(self, request, obj, form, change):
+        # Запись, созданную вручную в админке, помечаем как «выдал администратор».
+        if not change:
+            obj.source = 'admin'
+        super().save_model(request, obj, form, change)
+        if not change:
+            from . import notifications
+            notifications.access_granted(obj.user, obj.course, 'admin', request.build_absolute_uri('/'))
 
 
 @admin.register(TestAttempt)
@@ -408,3 +434,44 @@ class ReviewAdmin(admin.ModelAdmin):
     @admin.display(description='Отзыв')
     def short_text(self, obj):
         return obj.text[:70] if obj.text else '—'
+
+
+@admin.register(AccessCode)
+class AccessCodeAdmin(admin.ModelAdmin):
+    list_display = ('code', 'course', 'note', 'usage', 'expires_at', 'is_active', 'created_at')
+    list_filter = ('is_active', 'course')
+    search_fields = ('code', 'note', 'course__title')
+    autocomplete_fields = ('course',)
+    readonly_fields = ('used_count', 'created_at')
+    actions = ['disable_codes', 'enable_codes']
+
+    @admin.display(description='Использован')
+    def usage(self, obj):
+        return f'{obj.used_count} из {obj.max_uses}'
+
+    @admin.action(description='Отключить выбранные коды')
+    def disable_codes(self, request, queryset):
+        self.message_user(request, f'Отключено кодов: {queryset.update(is_active=False)}', messages.SUCCESS)
+
+    @admin.action(description='Включить выбранные коды')
+    def enable_codes(self, request, queryset):
+        self.message_user(request, f'Включено кодов: {queryset.update(is_active=True)}', messages.SUCCESS)
+
+
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    """Журнал оплат только для чтения: платёж нельзя подправить задним числом."""
+
+    list_display = ('created_at', 'user', 'course', 'amount', 'card_last4')
+    list_filter = ('course',)
+    search_fields = ('user__email', 'course__title')
+    date_hierarchy = 'created_at'
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

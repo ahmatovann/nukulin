@@ -114,8 +114,9 @@ AVATAR_ERROR = 'Фото должно быть в формате JPG или PNG 
 class ProfileForm(StyledFormMixin, forms.ModelForm):
     class Meta:
         model = User
-        fields = ('first_name', 'last_name', 'avatar')
-        labels = {'first_name': 'Имя', 'last_name': 'Фамилия', 'avatar': 'Фото профиля'}
+        fields = ('first_name', 'last_name', 'avatar', 'hide_from_rating')
+        labels = {'first_name': 'Имя', 'last_name': 'Фамилия', 'avatar': 'Фото профиля',
+                  'hide_from_rating': 'Скрыть меня из рейтинга'}
         widgets = {'avatar': forms.FileInput(attrs={'accept': 'image/jpeg,image/png'})}
 
     def __init__(self, *args, **kwargs):

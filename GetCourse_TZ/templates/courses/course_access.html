@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% load ru %}
+{% block title %}Доступ к курсу{% endblock %}
+{% block content %}
+<nav class="gc-crumbs" aria-label="Навигация">
+  <a href="{% url 'courses:catalog' %}">Каталог</a>
+  <span aria-hidden="true">/</span>
+  <a href="{% url 'courses:course_detail' course.pk %}">{{ course.title }}</a>
+</nav>
+
+<div class="gc-access">
+  <div class="gc-access-main">
+    <section class="gc-card" data-reveal>
+      <h1>Оплата курса</h1>
+      <p class="muted">Введите данные карты — после оплаты курс откроется сразу.</p>
+
+      <div class="gc-alert gc-alert--info" role="note">
+        <strong>Это учебная оплата.</strong> Деньги не списываются, данные карты не сохраняются.
+        Для проверки подойдёт номер <code>4242 4242 4242 4242</code>, любой будущий срок и любые три цифры CVV.
+      </div>
+
+      <form method="post" class="gc-access-form" novalidate>
+        {% csrf_token %}
+        <input type="hidden" name="action" value="pay">
+        <div class="gc-field">
+          <label for="{{ pay_form.card_number.id_for_label }}">{{ pay_form.card_number.label }}</label>
+          {{ pay_form.card_number }}
+          {% for error in pay_form.card_number.errors %}<p class="gc-field-error">{{ error }}</p>{% endfor %}
+        </div>
+        <div class="gc-access-row">
+          <div class="gc-field">
+            <label for="{{ pay_form.expiry.id_for_label }}">{{ pay_form.expiry.label }}</label>
+            {{ pay_form.expiry }}
+            {% for error in pay_form.expiry.errors %}<p class="gc-field-error">{{ error }}</p>{% endfor %}
+          </div>
+          <div class="gc-field">
+            <label for="{{ pay_form.cvv.id_for_label }}">{{ pay_form.cvv.label }}</label>
+            {{ pay_form.cvv }}
+            {% for error in pay_form.cvv.errors %}<p class="gc-field-error">{{ error }}</p>{% endfor %}
+          </div>
+        </div>
+        <button class="gc-btn" type="submit">Оплатить {{ course.price }} сом</button>
+      </form>
+    </section>
+
+    <section class="gc-card gc-access-code" data-reveal>
+      <details{% if show_code %} open{% endif %}>
+        <summary>У меня есть код доступа</summary>
+        <p class="muted">Код выдаёт администратор школы, например после оплаты вне сайта или для вашей группы.</p>
+        <form method="post" class="gc-access-form" novalidate>
+          {% csrf_token %}
+          <input type="hidden" name="action" value="code">
+          <div class="gc-field">
+            <label for="{{ code_form.code.id_for_label }}">{{ code_form.code.label }}</label>
+            {{ code_form.code }}
+            {% for error in code_form.code.errors %}<p class="gc-field-error">{{ error }}</p>{% endfor %}
+          </div>
+          <button class="gc-btn gc-btn--ghost" type="submit">Открыть курс по коду</button>
+        </form>
+      </details>
+    </section>
+  </div>
+
+  <aside class="gc-card gc-access-side" data-reveal>
+    <span class="gc-eyebrow">{{ course.category.name }}</span>
+    <h2>{{ course.title }}</h2>
+    <p class="muted">{{ course.get_difficulty_display }} уровень · {{ course.lessons.count }} {{ course.lessons.count|plural:"урок,урока,уроков" }}</p>
+    {% if course.is_private %}<p><span class="gc-badge gc-badge--lock">Закрытый курс</span></p>{% endif %}
+    <div class="gc-access-total"><span>К оплате</span><strong>{{ course.price }} сом</strong></div>
+    <a class="gc-btn gc-btn--ghost" href="{% url 'courses:course_detail' course.pk %}">Назад к курсу</a>
+  </aside>
+</div>
+{% endblock %}

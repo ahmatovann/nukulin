@@ -19,6 +19,7 @@
     <div class="gc-course-meta" style="margin-top:0">
       <span class="gc-badge">{{ course.get_difficulty_display }} уровень</span>
       <span class="gc-badge gc-badge--muted">{{ track|length }} {{ track|length|plural:"урок,урока,уроков" }}</span>
+      {% include 'courses/_access_badge.html' %}
       {% if students_count %}<span class="gc-badge gc-badge--muted">{{ students_count }} {{ students_count|plural:"участник,участника,участников" }}</span>{% endif %}
       {% if rating_average %}
         <span class="gc-badge gc-badge--rating" title="Средняя оценка по отзывам">
@@ -49,16 +50,13 @@
       </div>
     {% elif user.is_authenticated %}
       {% if track %}
-        <form method="post" action="{% url 'courses:enroll' course.pk %}">
-          {% csrf_token %}
-          <button class="gc-btn" type="submit">Записаться на курс</button>
-        </form>
+        {% include 'courses/_enroll_action.html' %}
       {% else %}
         <button class="gc-btn" type="button" disabled>В курсе пока нет уроков</button>
       {% endif %}
     {% else %}
       <div class="gc-hero-actions">
-        <a class="gc-btn" href="{% url 'accounts:login' %}?next={% url 'courses:course_detail' course.pk %}">Войти и записаться</a>
+        <a class="gc-btn" href="{% url 'accounts:login' %}?next={% url 'courses:course_detail' course.pk %}">Войти, чтобы получить доступ</a>
         <a class="gc-btn gc-btn--ghost" href="{% url 'accounts:register' %}">Регистрация</a>
       </div>
     {% endif %}

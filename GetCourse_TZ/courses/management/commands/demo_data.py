@@ -18,7 +18,7 @@ from django.utils import timezone
 
 from courses.models import (
     Answer, AttemptAnswer, Category, Comment, Course, Enrollment, Lesson, Question,
-    Review, Test, TestAttempt,
+    Payment, Review, Test, TestAttempt,
 )
 
 from ._demo_content import LESSONS
@@ -40,6 +40,32 @@ LAST = ['Абдыкадырова', 'Токтогулов', 'Иванова', '�
 
 # Публикации ленты.
 # Поля: заголовок, тип, короткое описание, текст, закрепить, курс,
+# Цена курса в сомах. Бесплатных курсов нет: доступ даёт оплата или код администратора.
+DEFAULT_PRICE = 1000
+PRICES = {
+    'Дизайн одежды: от эскиза до изделия': 1500,
+    'Основы кроя и шитья': 1200,
+    'История костюма': 800,
+    'Архитектурный скетчинг': 1400,
+    'Основы архитектурного проектирования': 2000,
+    'Графический дизайн в Figma': 1800,
+    'Основы типографики': 900,
+    'Дизайн интерьера: первые шаги': 1600,
+    'Фотография: свет и композиция': 1200,
+    'Обработка фотографий в Lightroom': 900,
+    'Python с нуля': 1500,
+    'SQL для начинающих': 1300,
+    'Личные финансы': 700,
+}
+# Закрытые курсы: не видны в каталоге и ленте, открываются по ссылке или по коду.
+PRIVATE_COURSES = {'Переговоры и презентации', 'Git и командная работа'}
+# Заметные коды, которые можно ввести сразу после загрузки данных.
+DEMO_CODES = {
+    'Переговоры и презентации': ('TALK-2026', 'Группа ПИ(б)-2-24', 30),
+    'Git и командная работа': ('GIT-2026', 'Для показа преподавателю', 30),
+    'Личные финансы': ('FIN-2026', 'Для показа преподавателю', 30),
+}
+
 # имя файла фотографии и способ показа (cover — заполнить, contain — вписать целиком).
 # Фотографии кладутся в папку static/img/demo/ — если файла нет, рисуется заглушка.
 POSTS = [
@@ -194,6 +220,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--clear', action='store_true', help='Удалить демо-данные')
+        parser.add_argument(
+            '--with-activity', action='store_true',
+            help='Дополнительно создать выдуманных пользователей, их тесты, комментарии и отзывы '
+                 '(нужно только чтобы посмотреть, как выглядит статистика на большом потоке)',
+        )
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -207,9 +238,18 @@ class Command(BaseCommand):
             Review.objects.filter(course__title__in=list(REVIEWS)).delete()
             n_users = User.objects.filter(email__endswith='@' + DEMO_DOMAIN).delete()[0]
             course_titles = [item['title'] for item in COURSES]
-            n_courses = Course.objects.filter(
-                Q(title__in=course_titles) | Q(description__startswith=DEMO_MARK)
-            ).delete()[0]
+            from django.db.models import ProtectedError
+            try:
+                n_courses = Course.objects.filter(
+                    Q(title__in=course_titles) | Q(description__startswith=DEMO_MARK)
+                ).delete()[0]
+            except ProtectedError:
+                transaction.set_rollback(True)
+                self.stderr.write(self.style.ERROR(
+                    'Курсы не удалены: на них есть настоящие оплаты. Удалять такие курсы нельзя, '
+                    'чтобы не потерять журнал платежей. Переведите курс в «Черновик» в админке.'
+                ))
+                return
             self.stdout.write(self.style.SUCCESS(
                 f'Удалено демо-записей: {n_users + n_courses + n_posts}'
             ))
@@ -233,6 +273,8 @@ class Command(BaseCommand):
                 status='published',
                 description=data['description'],
                 learning_outcomes=data['outcomes'],
+                price=PRICES.get(title, DEFAULT_PRICE),
+                is_private=title in PRIVATE_COURSES,
                 # Курсы добавлялись в разное время — так каталог выглядит живым
                 created_at=now - timedelta(weeks=9, days=-index * 2),
             )
@@ -256,21 +298,29 @@ class Command(BaseCommand):
                 self.attach_presentation(lesson)
                 test = Test.objects.create(lesson=lesson, pass_score=70)
 
-                for qn, (text, qtype, options) in enumerate(questions, start=1):
+                for qn, (text, qtype, variants) in enumerate(questions, start=1):
                     question = Question.objects.create(
                         test=test, order=qn, qtype=qtype, text=text,
                     )
-                    for an, (answer_text, is_correct) in enumerate(options, start=1):
+                    for an, (answer_text, is_correct) in enumerate(variants, start=1):
                         Answer.objects.create(question=question, order=an,
                                               text=answer_text, is_correct=is_correct)
 
             courses.append((course, hard_lesson))
 
         n_posts = self.make_posts()
+        self.make_access_codes()
 
         if not courses:
             self.stdout.write(f'Новых демо-курсов нет — данные уже созданы. '
                               f'Публикаций в ленте добавлено: {n_posts}.')
+            return
+
+        if not options['with_activity']:
+            self.stdout.write(self.style.SUCCESS(
+                f'Готово: курсов {len(courses)}, публикаций в ленте {n_posts}. '
+                'Пользователей, комментариев и отзывов нет: они появятся, когда их оставят настоящие люди.'
+            ))
             return
 
         users = []
@@ -302,7 +352,9 @@ class Command(BaseCommand):
                 # Интерес к курсу растёт: больше записей в последние недели.
                 days_ago = int(56 * (1 - rnd.random() ** 0.7))
                 enrolled = now - timedelta(days=days_ago, hours=rnd.randint(0, 23))
-                enrollment = Enrollment.objects.create(user=user, course=course, enrolled_at=enrolled)
+                enrollment = Enrollment.objects.create(user=user, course=course, enrolled_at=enrolled, source='payment')
+                payment = Payment.objects.create(user=user, course=course, amount=course.price, card_last4='4242')
+                Payment.objects.filter(pk=payment.pk).update(created_at=enrolled)
                 moment = enrolled
                 stay = rnd.uniform(0.75, 0.97)
                 finished = True
@@ -356,6 +408,19 @@ class Command(BaseCommand):
             return
         with source.open('rb') as handle:
             lesson.presentation_file.save(name, File(handle), save=True)
+
+    def make_access_codes(self):
+        """Выпускает коды: по одному заметному на курс и три одноразовых."""
+        from courses.models import AccessCode
+        for course in Course.objects.filter(Q(is_private=True) | Q(title__in=list(DEMO_CODES))):
+            if course.access_codes.exists():
+                continue
+            fixed = DEMO_CODES.get(course.title)
+            if fixed:
+                code, note, uses = fixed
+                AccessCode.objects.create(course=course, code=code, note=note, max_uses=uses)
+            for number in range(1, 4):
+                AccessCode.objects.create(course=course, note=f'Одноразовый код №{number}')
 
     def make_comments_and_reviews(self, users, rnd, now):
         """Комментарии к урокам и отзывы о курсах (ФТ-30, ФТ-31)."""

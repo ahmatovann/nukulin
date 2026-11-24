@@ -67,6 +67,11 @@ class User(AbstractUser):
     # Telegram: привязывается самим пользователем через бота (кнопка в профиле).
     telegram_chat_id = models.BigIntegerField('Telegram: чат', null=True, blank=True, unique=True)
     telegram_username = models.CharField('Telegram: имя', max_length=64, blank=True)
+    hide_from_rating = models.BooleanField(
+        'Скрыть меня из рейтинга',
+        default=False,
+        help_text='Баллы и уровень вы по-прежнему видите, но другие пользователи вас в рейтинге не увидят.',
+    )
 
     objects = UserManager()
 

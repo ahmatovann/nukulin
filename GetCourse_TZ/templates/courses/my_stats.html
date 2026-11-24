@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load ru %}
+{% block title %}Моя статистика{% endblock %}
+{% block content %}
+<section class="gc-section-head" data-reveal>
+  <div>
+    <span class="gc-eyebrow">Обучение</span>
+    <h1>Моя статистика</h1>
+  </div>
+  <a class="gc-btn gc-btn--ghost" href="{% url 'courses:my_courses' %}">Мои курсы</a>
+</section>
+
+<section class="gc-card gc-level" data-reveal>
+  <div class="gc-level-main">
+    <span class="gc-level-badge" aria-hidden="true">{{ summary.level.number }}</span>
+    <div>
+      <p class="muted" style="margin:0">Ваш уровень</p>
+      <h2>{{ summary.level.name }}</h2>
+      <p class="muted" style="margin:2px 0 0">
+        {{ summary.points }} {{ summary.points|plural:"балл,балла,баллов" }}
+        {% if summary.level.next_name %}· до уровня «{{ summary.level.next_name }}» осталось {{ summary.level.left }} {{ summary.level.left|plural:"балл,балла,баллов" }}{% else %}· это высший уровень{% endif %}
+      </p>
+    </div>
+  </div>
+  <span class="gc-bar{% if not summary.level.next_name %} is-done{% endif %}" role="img" aria-label="Путь до следующего уровня: {{ summary.level.percent }}%"><span style="width:{{ summary.level.percent }}%"></span></span>
+  {% if not summary.points %}
+    <p class="muted" style="margin:0">Баллов пока нет. Сдайте первый тест — и они появятся здесь.</p>
+  {% endif %}
+</section>
+
+<div class="gc-tiles" data-reveal>
+  <div class="gc-card gc-tile"><strong>{{ summary.tests_passed }}</strong><span>{{ summary.tests_passed|plural:"тест сдан,теста сдано,тестов сдано" }}</span></div>
+  <div class="gc-card gc-tile"><strong>{% if summary.average is not None %}{{ summary.average }}%{% else %}—{% endif %}</strong><span>средний результат</span></div>
+  <div class="gc-card gc-tile"><strong>{{ summary.courses_done }}</strong><span>{{ summary.courses_done|plural:"курс пройден,курса пройдено,курсов пройдено" }}</span></div>
+  <div class="gc-card gc-tile">
+    <strong>{% if summary.place %}{{ summary.place }}{% else %}—{% endif %}</strong>
+    <span>{% if summary.place %}место из {{ summary.participants }}{% elif summary.hidden %}вы скрыты из рейтинга{% else %}место в рейтинге{% endif %}</span>
+  </div>
+</div>
+
+<section class="gc-card gc-activity" data-reveal>
+  <h2 class="gc-block-title">Сданные тесты по неделям</h2>
+  <div class="gc-bars" role="img" aria-label="Сколько тестов сдано за каждую из последних 8 недель">
+    {% for week in summary.weeks %}
+      <div class="gc-bar-col">
+        <span class="gc-bar-num">{% if week.count %}{{ week.count }}{% endif %}</span>
+        <span class="gc-bar-stick"><span style="height:{{ week.height }}%"></span></span>
+        <span class="gc-bar-label">{{ week.label }}</span>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="gc-card gc-board" data-reveal>
+  <h2 class="gc-block-title">Рейтинг пользователей</h2>
+  {% if rows %}
+    <div class="gc-table-wrap">
+      <table class="gc-table">
+        <thead><tr><th>Место</th><th>Пользователь</th><th>Уровень</th><th>Тестов</th><th>Курсов</th><th>Баллы</th></tr></thead>
+        <tbody>
+          {% for row in rows %}
+            <tr{% if row.is_me %} class="is-me"{% endif %}>
+              <td>{{ row.rank }}</td>
+              <td>{{ row.name }}{% if row.is_me %} <span class="gc-badge">это вы</span>{% endif %}</td>
+              <td>{{ row.level }}</td><td>{{ row.tests }}</td><td>{{ row.courses }}</td><td><strong>{{ row.points }}</strong></td>
+            </tr>
+          {% endfor %}
+          {% if own_row %}
+            <tr class="gc-gap"><td colspan="6">…</td></tr>
+            <tr class="is-me">
+              <td>{{ own_row.rank }}</td><td>{{ own_row.name }} <span class="gc-badge">это вы</span></td>
+              <td>{{ own_row.level }}</td><td>{{ own_row.tests }}</td><td>{{ own_row.courses }}</td><td><strong>{{ own_row.points }}</strong></td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <p class="muted">В рейтинге пока никого нет. Он заполнится, когда пользователи начнут сдавать тесты.</p>
+  {% endif %}
+  <p class="muted gc-board-note">
+    Другим видно только имя и первую букву фамилии. Скрыть себя из рейтинга можно в <a href="{% url 'accounts:profile_edit' %}">настройках профиля</a>.
+  </p>
+</section>
+
+<section class="gc-card gc-note" data-reveal>
+  <h2 class="gc-block-title" style="font-size:18px">Как считаются баллы</h2>
+  <ul class="gc-outcomes">
+    <li>За каждый сданный тест — лучший результат, делённый на 10. Например, 80% дают 8 баллов, 100% — 10 баллов.</li>
+    <li>Пересдача засчитывается один раз: берётся лучшая попытка, поэтому баллы не накрутить повторами.</li>
+    <li>За каждый пройденный курс — ещё {{ points_per_course }} баллов.</li>
+    <li>Уровни: {% for floor, name in levels %}{{ name }} — от {{ floor }}{% if not forloop.last %}, {% endif %}{% endfor %}.</li>
+  </ul>
+</section>
+{% endblock %}

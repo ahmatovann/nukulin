@@ -196,8 +196,10 @@ LOGIN_URL = 'accounts:login'
 LOGIN_REDIRECT_URL = 'accounts:profile'  # UC-6, шаг 5: пользователь попадает в свой кабинет
 LOGOUT_REDIRECT_URL = 'courses:home'
 
-# UC-7: сеанс завершается автоматически через 24 часа
-SESSION_COOKIE_AGE = 60 * 60 * 24
+# НФТ-13: сеанс завершается после 2 часов бездействия.
+# Срок продлевается при каждом действии пользователя, поэтому тот, кто работает, не вылетает.
+SESSION_COOKIE_AGE = 60 * 60 * 2
+SESSION_SAVE_EVERY_REQUEST = True
 
 # Письма для восстановления пароля (UC-6, 1а).
 # Настройки почты берутся из .env. Если EMAIL_HOST_USER не задан,

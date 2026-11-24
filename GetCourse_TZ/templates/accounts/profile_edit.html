@@ -34,6 +34,10 @@
           <label style="display:flex;align-items:center;gap:8px;font-weight:500"><input type="checkbox" name="remove_avatar" value="1"> Удалить текущее фото</label>
         {% endif %}
       </div>
+      <div class="gc-field">
+        <label style="display:flex;align-items:center;gap:8px;font-weight:600">{{ profile_form.hide_from_rating }} {{ profile_form.hide_from_rating.label }}</label>
+        <div class="gc-help">{{ profile_form.hide_from_rating.help_text }}</div>
+      </div>
       <button class="gc-btn" type="submit" style="align-self:flex-start">Сохранить</button>
     </form>
   </section>

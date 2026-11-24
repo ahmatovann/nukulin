@@ -57,6 +57,20 @@ class Course(models.Model):
         choices=STATUS_CHOICES,
         default='draft',
     )
+    price = models.DecimalField(
+        'Цена, сом',
+        max_digits=8,
+        decimal_places=0,
+        default=0,
+        validators=[MinValueValidator(1)],
+        help_text='Бесплатных курсов нет: получить доступ можно оплатой или по коду, который выдаёт администратор.',
+    )
+    is_private = models.BooleanField(
+        'Закрытый курс',
+        default=False,
+        help_text='Закрытый курс не показывается в каталоге и ленте. Открыть его можно по ссылке или по коду доступа. '
+                  'Оплата и коды работают так же, как у обычных курсов.',
+    )
     created_at = models.DateTimeField('Дата создания', auto_now_add=True)
 
     class Meta:
@@ -66,6 +80,11 @@ class Course(models.Model):
 
     def __str__(self):
         return self.title
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if not self.price or self.price < 1:
+            raise ValidationError({'price': 'Укажите цену курса больше нуля. Бесплатный доступ даётся только кодом от администратора.'})
 
     @property
     def lesson_count(self):
@@ -346,8 +365,15 @@ class Enrollment(models.Model):
         related_name='enrollments',
         verbose_name='Курс',
     )
+    SOURCE_CHOICES = [
+        ('payment', 'Оплата'),
+        ('code', 'Код доступа'),
+        ('admin', 'Выдал администратор'),
+    ]
+
     enrolled_at = models.DateTimeField('Дата записи', default=timezone.now)
     completed_at = models.DateTimeField('Курс завершён', null=True, blank=True)
+    source = models.CharField('Как получен доступ', max_length=10, choices=SOURCE_CHOICES, default='admin')
 
     class Meta:
         verbose_name = 'Запись на курс'
@@ -413,3 +439,93 @@ class AttemptAnswer(models.Model):
     class Meta:
         verbose_name = 'Ответ в попытке'
         verbose_name_plural = 'Ответы в попытках'
+
+
+def generate_access_code():
+    """Короткий код без похожих символов (0/O, 1/I), чтобы его удобно было диктовать."""
+    import secrets
+    alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    raw = ''.join(secrets.choice(alphabet) for _ in range(8))
+    return f'{raw[:4]}-{raw[4:]}'
+
+
+class AccessCode(models.Model):
+    """Код доступа к закрытому курсу. Его выдаёт администратор."""
+
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name='access_codes',
+        verbose_name='Курс',
+    )
+    code = models.CharField('Код', max_length=20, unique=True, blank=True, default=generate_access_code)
+    note = models.CharField(
+        'Кому выдан',
+        max_length=120,
+        blank=True,
+        help_text='Для себя: например, «группа ПИ-2-24» или «Иван Петров».',
+    )
+    max_uses = models.PositiveIntegerField(
+        'Сколько раз можно использовать',
+        default=1,
+        validators=[MinValueValidator(1)],
+        help_text='1 — код для одного человека, больше — для группы.',
+    )
+    used_count = models.PositiveIntegerField('Уже использован', default=0, editable=False)
+    expires_at = models.DateTimeField('Действует до', null=True, blank=True, help_text='Пусто — без срока.')
+    is_active = models.BooleanField('Действует', default=True)
+    created_at = models.DateTimeField('Создан', auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Код доступа'
+        verbose_name_plural = 'Коды доступа'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.code} → {self.course}'
+
+    def save(self, *args, **kwargs):
+        self.code = (self.code or generate_access_code()).strip().upper()
+        super().save(*args, **kwargs)
+
+    @property
+    def uses_left(self):
+        return max(self.max_uses - self.used_count, 0)
+
+    def problem(self):
+        """Почему код нельзя применить. None — код рабочий."""
+        if not self.is_active:
+            return 'Этот код отключён администратором.'
+        if self.expires_at and self.expires_at < timezone.now():
+            return 'Срок действия кода закончился.'
+        if self.used_count >= self.max_uses:
+            return 'Этот код уже использован — попросите у администратора новый.'
+        return None
+
+
+class Payment(models.Model):
+    """Журнал оплат. Оплата учебная: деньги не списываются, номер карты не хранится."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='payments',
+        verbose_name='Пользователь',
+    )
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.PROTECT,
+        related_name='payments',
+        verbose_name='Курс',
+    )
+    amount = models.DecimalField('Сумма, сом', max_digits=8, decimal_places=0)
+    card_last4 = models.CharField('Последние цифры карты', max_length=4, blank=True)
+    created_at = models.DateTimeField('Дата оплаты', default=timezone.now)
+
+    class Meta:
+        verbose_name = 'Платёж'
+        verbose_name_plural = 'Платежи'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user} — {self.course}: {self.amount} сом'

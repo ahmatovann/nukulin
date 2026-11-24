@@ -12,11 +12,17 @@ from accounts.models import User
 
 HELP = (
     'Я бот GetCourse 👋\n\n'
-    'Сюда приходят напоминания о курсах и коды для восстановления пароля.\n\n'
+    'Сюда приходят сообщения об оплате и кодах доступа, ответы на ваши комментарии, '
+    'напоминания о курсах и коды для восстановления пароля.\n\n'
     'Чтобы подключить аккаунт, откройте на сайте «Профиль» и нажмите «Подключить Telegram».\n\n'
+    '/my — мои курсы и прогресс\n'
+    '/code КОД — открыть курс по коду доступа\n'
     '/status — к какому аккаунту я подключён\n'
     '/stop — отключить уведомления'
 )
+
+
+NOT_LINKED = 'Сначала подключите аккаунт: откройте на сайте «Профиль» и нажмите «Подключить Telegram».'
 
 
 class Command(BaseCommand):
@@ -52,6 +58,32 @@ class Command(BaseCommand):
                     except Exception as error:  # бот не должен падать из-за одного сообщения
                         self.stderr.write(f'Ошибка обработки сообщения: {error}')
 
+    def my_courses_text(self, user):
+        from courses.models import Enrollment
+        from courses.progress import course_progress
+
+        rows = Enrollment.objects.filter(user=user).select_related('course')
+        if not rows:
+            return 'Вы пока не записаны ни на один курс. Выберите курс в каталоге на сайте.'
+        lines = ['<b>Ваши курсы</b>', '']
+        for enrollment in rows:
+            summary = course_progress(user, enrollment.course)
+            mark = '✅' if summary['completed'] else '📘'
+            lines.append(f'{mark} {enrollment.course.title} — {summary["percent"]}%')
+        return '\n'.join(lines)
+
+    def redeem_text(self, user, code):
+        from courses import access
+
+        code = code.strip()
+        if not code:
+            return 'Напишите код после команды, например: /code ABCD-2345'
+        try:
+            course = access.redeem(user, code)
+        except access.AccessError as error:
+            return str(error)
+        return f'✅ Код принят. Курс «{course.title}» открыт, первый урок уже доступен.'
+
     def reply(self, chat_id, text):
         telegram.send_message(chat_id, text)
 
@@ -86,6 +118,10 @@ class Command(BaseCommand):
                 self.reply(chat_id, 'Уведомления отключены. Подключить снова можно в профиле на сайте.')
             else:
                 self.reply(chat_id, 'Этот чат и так не подключён к аккаунту.')
+        elif command == '/my':
+            self.reply(chat_id, self.my_courses_text(user) if user else NOT_LINKED)
+        elif command == '/code':
+            self.reply(chat_id, self.redeem_text(user, arg) if user else NOT_LINKED)
         elif command == '/status':
             if user:
                 self.reply(chat_id, f'Подключён аккаунт: <b>{user.first_name} {user.last_name}</b> ({user.email}).')

@@ -8,7 +8,10 @@
     <span class="gc-eyebrow">Обучение</span>
     <h1>Мои курсы</h1>
   </div>
-  <a class="gc-btn gc-btn--ghost" href="{% url 'courses:catalog' %}">Каталог курсов</a>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <a class="gc-btn gc-btn--ghost" href="{% url 'courses:redeem_code' %}">У меня есть код</a>
+    <a class="gc-btn gc-btn--ghost" href="{% url 'courses:catalog' %}">Каталог курсов</a>
+  </div>
 </section>
 
 {% if total %}

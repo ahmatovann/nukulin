@@ -1219,3 +1219,80 @@ details.gc-course[open] .gc-course-chevron {
   .gc-pdf { height: 360px; }
   .gc-review-form { padding: 16px; }
 }
+
+/* ---- Доступ к курсам: код и оплата ---- */
+.gc-badge--lock { background: #FFF3E0; color: #8A5300; }
+.gc-badge--price { background: #E8F5EC; color: #1E6B3A; font-weight: 700; }
+.gc-access { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.gc-access-main h1 { margin: 0 0 10px; }
+.gc-access-side .gc-btn { margin-top: 14px; }
+.gc-access-total + .gc-btn { margin-top: 0; }
+.gc-access-form { display: grid; gap: 16px; margin-top: 18px; max-width: 440px; }
+.gc-access-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.gc-code-input { font-size: 22px; letter-spacing: .14em; text-align: center; text-transform: uppercase; font-weight: 600; }
+.gc-access-note { font-size: 14px; margin: 16px 0 0; }
+.gc-access-side h2 { font-size: 20px; margin: 4px 0 6px; }
+.gc-access-total { display: flex; justify-content: space-between; align-items: baseline; margin: 16px 0; padding: 14px 0; border-block: 1px solid var(--border); }
+.gc-access-total strong { font-size: 24px; }
+.gc-alert--info { background: #F1ECFA; border: 1px solid #DCCFF2; color: #3F2468; border-radius: var(--radius-sm); padding: 14px 16px; margin-top: 14px; font-size: 15px; }
+.gc-alert--info code { background: #fff; padding: 2px 6px; border-radius: 6px; font-weight: 600; white-space: nowrap; }
+@media (max-width: 800px) { .gc-access { grid-template-columns: 1fr; } }
+
+.gc-access-main { display: grid; gap: 20px; }
+.gc-access--single { grid-template-columns: minmax(0, 560px); }
+.gc-access-code summary { cursor: pointer; font-weight: 700; font-size: 18px; color: var(--brand); list-style: none; }
+.gc-access-code summary::-webkit-details-marker { display: none; }
+.gc-access-code summary::after { content: ' ▾'; font-size: 13px; }
+.gc-access-code details[open] summary::after { content: ' ▴'; }
+.gc-access-code details > p { margin: 10px 0 0; }
+
+/* ---- Моя статистика ---- */
+.gc-level { display: grid; gap: 16px; }
+.gc-level-main { display: flex; align-items: center; gap: 18px; }
+.gc-level-main h2 { margin: 0; font-size: 30px; }
+.gc-level-badge {
+  flex: none; width: 64px; height: 64px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 28px; font-weight: 800;
+  color: #fff; background: linear-gradient(135deg, var(--primary), #9B6BDB);
+  box-shadow: 0 8px 20px rgba(116, 66, 184, .28);
+}
+.gc-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin: 20px 0; }
+.gc-tile { display: flex; flex-direction: column; gap: 4px; padding: 18px 20px; }
+.gc-tile strong { font-size: 32px; line-height: 1.1; }
+.gc-tile span { color: var(--muted, #6B6480); font-size: 15px; }
+.gc-bars { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px; align-items: end; margin-top: 12px; }
+.gc-bar-col { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.gc-bar-stick { width: 100%; max-width: 44px; height: 120px; background: #F1ECFA; border-radius: 10px; display: flex; align-items: flex-end; overflow: hidden; }
+.gc-bar-stick > span { display: block; width: 100%; background: var(--primary); border-radius: 10px 10px 0 0; min-height: 0; }
+.gc-bar-num { font-weight: 700; min-height: 1.2em; font-size: 15px; }
+.gc-bar-label { font-size: 13px; color: var(--muted, #6B6480); white-space: nowrap; }
+.gc-activity, .gc-board, .gc-note { margin-top: 20px; }
+.gc-table-wrap { overflow-x: auto; margin-top: 8px; }
+.gc-table tr.is-me td { background: #FAF7FF; font-weight: 600; }
+.gc-table tr.gc-gap td { text-align: center; color: var(--muted, #6B6480); }
+.gc-board-note { font-size: 14px; margin: 14px 0 0; }
+@media (max-width: 800px) {
+  .gc-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .gc-bars { gap: 6px; }
+  .gc-bar-label { font-size: 11px; }
+}
+
+/* ---- Руководство ---- */
+.gc-help-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 20px; align-items: start; }
+.gc-help-toc { position: sticky; top: 20px; }
+.gc-help-toc ol { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 8px; }
+.gc-help-toc a { text-decoration: none; }
+.gc-help-body { display: grid; gap: 18px; }
+.gc-help-section { scroll-margin-top: 20px; }
+.gc-help-section h2 { margin-top: 0; }
+.gc-help-section h3 { margin: 18px 0 6px; font-size: 18px; }
+.gc-help-section ul, .gc-help-section ol { padding-left: 22px; display: grid; gap: 8px; }
+.gc-help-section code { background: #F1ECFA; padding: 2px 7px; border-radius: 6px; font-weight: 600; white-space: nowrap; }
+.gc-faq { border-top: 1px solid var(--border); padding: 12px 0; }
+.gc-faq summary { cursor: pointer; font-weight: 600; }
+.gc-faq p { margin: 8px 0 0; }
+@media (max-width: 800px) {
+  .gc-help-layout { grid-template-columns: 1fr; }
+  .gc-help-toc { position: static; }
+}
+.gc-note .gc-outcomes { margin-top: 12px; }

@@ -9,11 +9,13 @@ from django.shortcuts import get_object_or_404, redirect, render
 from feed.models import Post
 from feed.services import popular_courses_of_week
 
-from .forms import CommentForm, ReviewForm
+from . import access, notifications
+from .forms import AccessCodeForm, CommentForm, PaymentForm, ReviewForm
 from .models import (
     Answer, AttemptAnswer, Category, Comment, Course, Enrollment, Lesson, Review,
     Test, TestAttempt,
 )
+from . import rating
 from .progress import build_track, course_progress, lesson_state, track_summary
 
 FEED_LIMIT = 10
@@ -59,7 +61,7 @@ def catalog(request):
 
     courses = (
         Course.objects
-        .filter(status='published')
+        .filter(status='published', is_private=False)
         .select_related('category')
         .prefetch_related('lessons', 'reviews')
         .annotate(lessons_total=Count('lessons', distinct=True))
@@ -175,26 +177,83 @@ class _Anonymous:
 
 @login_required
 def enroll(request, pk):
-    """Запись на курс одной кнопкой, повторно записаться нельзя (ФТ-8, UC-8)."""
+    """Кнопка «Получить доступ». Бесплатной записи нет: ведёт на страницу оплаты или ввода кода (ФТ-8, ФТ-33, ФТ-34)."""
     course = get_object_or_404(Course, pk=pk, status='published')
 
-    if request.method != 'POST':
-        return redirect('courses:course_detail', pk=course.pk)
-
-    if not course.lessons.exists():
-        messages.error(request, 'В этом курсе пока нет уроков, записаться нельзя.')
-        return redirect('courses:course_detail', pk=course.pk)
-
-    enrollment, created = Enrollment.objects.get_or_create(user=request.user, course=course)
-    if created:
-        messages.success(
-            request,
-            f'Вы записаны на курс «{course.title}». Первый урок уже открыт.',
-        )
-    else:
+    if Enrollment.objects.filter(user=request.user, course=course).exists():
         messages.info(request, f'Вы уже записаны на курс «{course.title}».')
+        return redirect('courses:course_detail', pk=course.pk)
 
+    return redirect('courses:course_access', pk=course.pk)
+
+
+def _welcome(request, course, text=None):
+    messages.success(request, text or f'Вы записаны на курс «{course.title}». Первый урок уже открыт.')
     return redirect('courses:course_detail', pk=course.pk)
+
+
+@login_required
+def course_access(request, pk):
+    """Страница доступа к курсу: оплата картой или код от администратора (ФТ-33, ФТ-34)."""
+    course = get_object_or_404(Course, pk=pk, status='published')
+
+    try:
+        access.check_can_join(request.user, course)
+    except access.AccessError as error:
+        messages.info(request, str(error))
+        return redirect('courses:course_detail', pk=course.pk)
+
+    code_form = AccessCodeForm()
+    pay_form = PaymentForm()
+    is_code_post = request.method == 'POST' and request.POST.get('action') == 'code'
+
+    if request.method == 'POST':
+        site = request.build_absolute_uri('/')
+        if is_code_post:
+            code_form = AccessCodeForm(request.POST)
+            if code_form.is_valid():
+                try:
+                    access.redeem(request.user, code_form.cleaned_data['code'], course=course)
+                except access.AccessError as error:
+                    messages.error(request, str(error))
+                else:
+                    notifications.access_granted(request.user, course, 'code', site)
+                    return _welcome(request, course)
+        else:
+            pay_form = PaymentForm(request.POST)
+            if pay_form.is_valid():
+                try:
+                    access.pay(request.user, course, pay_form.cleaned_data['card_number'])
+                except access.AccessError as error:
+                    messages.error(request, str(error))
+                else:
+                    notifications.access_granted(request.user, course, 'payment', site)
+                    return _welcome(
+                        request, course,
+                        f'Оплата прошла: {course.price} сом. Вы записаны на курс «{course.title}».',
+                    )
+
+    return render(request, 'courses/course_access.html', {
+        'course': course,
+        'code_form': code_form,
+        'pay_form': pay_form,
+        'show_code': is_code_post,
+    })
+
+
+@login_required
+def redeem_code_page(request):
+    """«У меня есть код»: код сам определяет курс. Так открываются закрытые курсы (ФТ-33)."""
+    form = AccessCodeForm(request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        try:
+            course = access.redeem(request.user, form.cleaned_data['code'])
+        except access.AccessError as error:
+            messages.error(request, str(error))
+        else:
+            notifications.access_granted(request.user, course, 'code', request.build_absolute_uri('/'))
+            return _welcome(request, course)
+    return render(request, 'courses/redeem_code.html', {'form': form})
 
 
 @login_required
@@ -318,6 +377,8 @@ def lesson_detail(request, pk):
                     pk=int(parent_id), lesson=lesson,
                 ).first()
             comment.save()
+            if comment.parent_id:
+                notifications.comment_reply(comment, request.build_absolute_uri('/'))
             messages.success(request, 'Комментарий добавлен.')
             return redirect(f"{request.path}#comment-{comment.pk}")
 
@@ -398,6 +459,7 @@ def test_take(request, pk):
         summary = course_progress(request.user, course)
         if _sync_completion(enrollment, summary):
             messages.success(request, f'Поздравляем, курс «{course.title}» пройден!')
+            notifications.course_completed(request.user, course, request.build_absolute_uri('/'))
         return redirect('courses:test_result', pk=attempt.pk)
 
     best = test.attempts.filter(user=request.user).order_by('-score', '-created_at').first()
@@ -480,3 +542,25 @@ def test_result(request, pk):
         'summary': summary,
         'course_completed': bool(summary and summary['completed']),
     })
+
+
+@login_required
+def my_stats(request):
+    """Личная статистика: баллы, уровень, активность и рейтинг (ФТ-35, ФТ-36)."""
+    if request.user.is_staff:
+        return redirect('admin_statistics')
+    summary = rating.user_summary(request.user)
+    rows, own_row, total = rating.leaderboard(request.user)
+    return render(request, 'courses/my_stats.html', {
+        'summary': summary,
+        'rows': rows,
+        'own_row': own_row,
+        'total': total,
+        'points_per_course': rating.POINTS_PER_COURSE,
+        'levels': rating.LEVELS,
+    })
+
+
+def help_page(request):
+    """Руководство пользователя (НФТ-20): доступно всем, в том числе гостю."""
+    return render(request, 'courses/help.html')
